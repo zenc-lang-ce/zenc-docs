@@ -1,6 +1,6 @@
 # RFC 0001: Explicit string interpolation and printing
 
-- Status: draft
+- Status: accepted (parts 1 and 2), 2026-10-27. Part 3 is still open.
 - Target: Zen C language specification and the C backend
 
 ## Summary
@@ -11,6 +11,20 @@
 3. An `f"..."` used as a value has a defined owner. This RFC lists the options and
    proposes one, but the choice depends on the memory model and can be settled
    separately from parts 1 and 2.
+
+## Decision
+
+Accepted on 2026-10-27:
+
+- **Part 1**: only `f"..."` interpolates.
+- **Part 2**: `print`, `println`, `eprint` and `eprintln` are language functions, called with
+  parentheses. They take one string: a literal, an `f"..."`, or any string expression
+  (`char*`, `const char*`). They cannot be used as values (`let p = println;`).
+- The `printf`-style `print(fmt, ...)` and `println(fmt, ...)` of `std/io.zc` are removed.
+- The other printing shortcuts are deprecated too: `"..."..`, `!"..."` and `?"..."`.
+- Migration: one release with warnings, then errors.
+- **Part 3** (who owns an `f"..."` used as a value) stays open. Meanwhile the value form no
+  longer writes past its buffer: a text longer than the buffer is cut.
 
 ## Motivation
 
@@ -81,13 +95,32 @@ where it happens.
   parentheses and take one string argument.
 - When the argument is an `f"..."`, the compiler keeps doing what it does today for
   `println "..."`: it writes each piece directly to the stream, with no allocation.
-  With any other string expression it prints that string.
+- With any other string expression (a literal, a `char*` or `const char*` variable, a call
+  that returns one) it prints that string as text, never as a format: a `%` in it is printed
+  as is.
+- An argument that is not a string is an error that suggests the fix: `println(n)` with an
+  `int` suggests `println(f"{n}")`.
+- They are functions of the language, not symbols: they can be called but not taken as
+  values.
 - A string literal written as a statement is just an unused expression (a warning),
   not a print order. This frees string literals to be block values.
 
-`std/io.zc` already has `print(fmt, ...)` and `println(fmt, ...)` functions in the
-`printf` style. Those could stay under another name or merge with these. That
-decision is independent of the rest.
+`std/io.zc` has `print(fmt, ...)` and `println(fmt, ...)` functions in the `printf` style,
+which would clash with these. They are removed: printing a string is covered by the
+language functions, and formatting with `%d` is `printf` itself. Merging them (a format plus
+arguments) would give two ways to format, and an `f"..."` used as a format would read any
+`%` in the interpolated text as a directive.
+
+The other printing shortcuts go the same way:
+
+| Today | Replacement |
+|---|---|
+| `"text"..` (prints without a newline) | `print("text")` |
+| `!"text"` (prints to stderr) | `eprintln("text")` |
+| `?"prompt"(a, b)` (prints a prompt and reads with `scanf`) | `print("prompt")`, then `readln()` and a conversion |
+
+The last one has no one-call replacement yet; a function that reads with a prompt can be
+proposed separately.
 
 ### 3. Who owns an `f"..."` used as a value
 
@@ -160,7 +193,8 @@ Almost all of this is mechanical:
 
 1. One release accepts both forms. The old ones give a warning with the replacement
    (`'println "..."' is deprecated; use 'println(f"...")'`), the same way the removed
-   `unless`, `repeat` and `do ... while` now give a migration error.
+   `unless`, `repeat` and `do ... while` now give a migration error. There is no flag to
+   silence the warnings.
 2. A script, or a `zc fix` command, rewrites the forms above.
 3. The next release turns the warnings into errors.
 
@@ -186,8 +220,6 @@ Almost all of this is mechanical:
 ## Unresolved questions
 
 - Part 3: which option, and when (tied to the memory model).
-- Whether `print(fmt, ...)` from `std/io.zc` stays, is renamed, or merges with the new
-  `print`.
 - Whether `f"..."` accepts quotes inside `{...}` (C#-style), which the current lexer
   does not.
-- The length of the deprecation period.
+- A replacement for `?"prompt"(a, b)` (reading with a prompt in one call).
