@@ -22,7 +22,9 @@ Accepted on 2026-10-27:
   (`char*`, `const char*`). They cannot be used as values (`let p = println;`).
 - The `printf`-style `print(fmt, ...)` and `println(fmt, ...)` of `std/io.zc` are removed.
 - The other printing shortcuts are deprecated too: `"..."..`, `!"..."` and `?"..."`.
-- Migration: one release with warnings, then errors.
+- Migration: for one release, the old forms are errors that name the replacement; after that, a
+  plain `"..."` is an ordinary string. A warning was the first plan, but removing the old meaning
+  would change the output of existing code without a word, so the transition is an error.
 - **Part 3** (who owns an `f"..."` used as a value) stays open. Meanwhile the value form no
   longer writes past its buffer: a text longer than the buffer is cut.
 
@@ -191,12 +193,16 @@ Almost all of this is mechanical:
 
 ## Migration
 
-1. One release accepts both forms. The old ones give a warning with the replacement
-   (`'println "..."' is deprecated; use 'println(f"...")'`), the same way the removed
-   `unless`, `repeat` and `do ... while` now give a migration error. There is no flag to
-   silence the warnings.
-2. A script, or a `zc fix` command, rewrites the forms above.
-3. The next release turns the warnings into errors.
+1. For one release the old forms do not compile: the error names the replacement, the same
+   way the removed `unless`, `repeat` and `do ... while` now give a migration error. A
+   warning is not enough here: `println "total: {n}"` would still compile and, once plain
+   strings stop interpolating, print the braces. For part 1 the errors are
+   `only f"..." strings interpolate` and, for `{{` / `}}` where they mean one brace,
+   `'{{' and '}}' only escape braces in f"..." strings`; adding the `f` keeps the meaning.
+2. `scripts/migrate_fstrings.py` in the compiler's repository rewrites them: it adds the `f`
+   where the compiler reports one of those errors.
+3. In the next release the errors go away: a plain `"..."` is an ordinary string and `{` in
+   it is plain text.
 
 ## Drawbacks
 
