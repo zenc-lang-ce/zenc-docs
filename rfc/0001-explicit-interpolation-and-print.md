@@ -200,8 +200,10 @@ Almost all of this is mechanical:
    strings stop interpolating, print the braces. For part 1 the errors are
    `only f"..." strings interpolate` and, for `{{` / `}}` where they mean one brace,
    `'{{' and '}}' only escape braces in f"..." strings`; adding the `f` keeps the meaning.
-2. `scripts/migrate_fstrings.py` in the compiler's repository rewrites them: it adds the `f`
-   where the compiler reports one of those errors.
+2. Code is migrated by hand, following those errors: each one names the fix. The forms
+   that would still compile and print nothing (a bare string, `!"..."`, a string as the arm of
+   a `match` statement) are errors too; `println "..."` and the other removed keywords are
+   syntax errors.
 3. In the next release the errors go away: a plain `"..."` is an ordinary string and `{` in
    it is plain text.
 
