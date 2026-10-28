@@ -17,10 +17,11 @@
 Accepted on 2026-10-27:
 
 - **Part 1**: only `f"..."` interpolates.
-- **Part 2**: `print`, `println`, `eprint` and `eprintln` are language functions, called with
-  parentheses. They take one string: a literal, an `f"..."`, or any string expression
-  (`char*`, `const char*`). They cannot be used as values (`let p = println;`).
-- The `printf`-style `print(fmt, ...)` and `println(fmt, ...)` of `std/io.zc` are removed.
+- **Part 2**: `print`, `println`, `eprint` and `eprintln` stop being keywords. They are
+  ordinary functions of `std/io.zc`, `fn println(s: const char*)` and so on, imported like
+  any other part of the standard library (`import "std/io.zc"`). They take one string: a
+  literal, an `f"..."`, or any string expression (`char*`, `const char*`).
+- They replace the `printf`-style `print(fmt, ...)` and `println(fmt, ...)` of `std/io.zc`.
 - The other printing shortcuts are deprecated too: `"..."..`, `!"..."` and `?"..."`.
 - Migration: for one release, the old forms are errors that name the replacement; after that, a
   plain `"..."` is an ordinary string. A warning was the first plan, but removing the old meaning
@@ -95,21 +96,21 @@ where it happens.
 
 - `print(...)`, `println(...)`, `eprint(...)` and `eprintln(...)` are written with
   parentheses and take one string argument.
-- When the argument is an `f"..."`, the compiler keeps doing what it does today for
-  `println "..."`: it writes each piece directly to the stream, with no allocation.
-- With any other string expression (a literal, a `char*` or `const char*` variable, a call
-  that returns one) it prints that string as text, never as a format: a `%` in it is printed
-  as is.
-- An argument that is not a string is an error that suggests the fix: `println(n)` with an
-  `int` suggests `println(f"{n}")`.
-- They are functions of the language, not symbols: they can be called but not taken as
-  values.
+- They are ordinary functions of `std/io.zc` (`fn println(s: const char*)`), imported like
+  any other part of the standard library. They can be passed as values, searched for as
+  calls and replaced, like any function.
+- The argument is printed as text, never as a format: a `%` in it is printed as is.
+- An argument that is not a string is a type error, as for any function: `println(n)` with
+  an `int` is written `println(f"{n}")`.
+- An `f"..."` argument is built as a value first (see part 3) and then printed. Writing its
+  pieces straight to the stream, as `println "..."` does today, with no buffer, is an
+  optimization the compiler can add later without changing the result.
 - A string literal written as a statement is just an unused expression (a warning),
   not a print order. This frees string literals to be block values.
 
 `std/io.zc` has `print(fmt, ...)` and `println(fmt, ...)` functions in the `printf` style,
-which would clash with these. They are removed: printing a string is covered by the
-language functions, and formatting with `%d` is `printf` itself. Merging them (a format plus
+which would clash with these. They are replaced: printing a string is covered by the new
+functions, and formatting with `%d` is `printf` itself. Merging them (a format plus
 arguments) would give two ways to format, and an `f"..."` used as a format would read any
 `%` in the interpolated text as a directive.
 
