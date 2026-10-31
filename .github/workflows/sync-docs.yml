@@ -54,6 +54,19 @@ jobs:
           mkdir -p website/docs.zenc-lang.org/content/tour/
           rsync -avz --delete --exclude='_index.md' docs-repo/reference/ website/docs.zenc-lang.org/content/tour/
           
+          # Sync the Getting Started pages (English only), with the template that shows them as plain documents
+          for name in install changelog; do
+            TITLE=$(grep -m 1 "^# " "docs-repo/$name.md" | sed 's/^# //')
+            { printf '+++\ntitle = "%s"\ntemplate = "plain.html"\n+++\n\n' "$TITLE"; cat "docs-repo/$name.md"; } \
+              > "website/docs.zenc-lang.org/content/$name.md"
+          done
+
+          # Sync the migration guides (English only): one page per release, shown as plain documents
+          mkdir -p website/docs.zenc-lang.org/content/migrations/
+          rsync -avz --delete --exclude='_index*.md' docs-repo/migrations/ website/docs.zenc-lang.org/content/migrations/
+          printf '+++\ntitle = "Migrations"\nsort_by = "title"\npage_template = "plain.html"\n+++\n' \
+            > website/docs.zenc-lang.org/content/migrations/_index.md
+
           # Sync Rosetta Examples
           mkdir -p website/docs.zenc-lang.org/content/examples/rosetta/
           rsync -avz --delete --exclude='_index*.md' docs-repo/rosetta/ website/docs.zenc-lang.org/content/examples/rosetta/
@@ -100,5 +113,5 @@ jobs:
           cd website
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs.zenc-lang.org/content/std/ docs.zenc-lang.org/content/examples/rosetta/ docs.zenc-lang.org/content/tour/ docs.zenc-lang.org/templates/
+          git add docs.zenc-lang.org/content/std/ docs.zenc-lang.org/content/examples/rosetta/ docs.zenc-lang.org/content/tour/ docs.zenc-lang.org/content/install.md docs.zenc-lang.org/content/changelog.md docs.zenc-lang.org/content/migrations/ docs.zenc-lang.org/templates/
           git diff --quiet && git diff --staged --quiet || (git commit -m "docs: auto-sync documentation and rosetta examples" && git pull --rebase origin main && git push)

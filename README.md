@@ -25,6 +25,9 @@ Deep dives into the compiler's internals and tooling protocols.
 - **[Lexer Specification](lex.md)**: Detailed breakdown of Zen C's tokens and grammar rules.
 - **[LSP Protocol](LSP.md)**: Documentation for the Zen C Language Server integration.
 - **[Plugin System](PLUGINS.md)**: How to extend the compiler with custom plugins.
+- **[Install](install.md)**: Building and installing Zen C on Linux, macOS and Windows.
+- **[Changelog](changelog.md)**: Every change in each release.
+- **[Migrations](migrations/)**: What to change in your code for each release ([0.4.4 to 0.5](migrations/0-4-4-to-0-5.md)).
 
 ### Command-Line Tools
 
