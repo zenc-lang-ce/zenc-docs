@@ -1,6 +1,6 @@
 # RFC 0001: Explicit string interpolation and printing
 
-- Status: draft
+- Status: accepted (parts 1 and 2), 2026-10-27. Part 3 is still open.
 - Target: Zen C language specification and the C backend
 
 ## Summary
@@ -11,6 +11,23 @@
 3. An `f"..."` used as a value has a defined owner. This RFC lists the options and
    proposes one, but the choice depends on the memory model and can be settled
    separately from parts 1 and 2.
+
+## Decision
+
+Accepted on 2026-10-27:
+
+- **Part 1**: only `f"..."` interpolates.
+- **Part 2**: `print`, `println`, `eprint` and `eprintln` stop being keywords. They are
+  ordinary functions of `std/io.zc`, `fn println(s: const char*)` and so on, imported like
+  any other part of the standard library (`import "std/io.zc"`). They take one string: a
+  literal, an `f"..."`, or any string expression (`char*`, `const char*`).
+- They replace the `printf`-style `print(fmt, ...)` and `println(fmt, ...)` of `std/io.zc`.
+- The other printing shortcuts are deprecated too: `"..."..`, `!"..."` and `?"..."`.
+- Migration: for one release, the old forms are errors that name the replacement; after that, a
+  plain `"..."` is an ordinary string. A warning was the first plan, but removing the old meaning
+  would change the output of existing code without a word, so the transition is an error.
+- **Part 3** (who owns an `f"..."` used as a value) stays open. Meanwhile the value form no
+  longer writes past its buffer: a text longer than the buffer is cut.
 
 ## Motivation
 
@@ -79,15 +96,34 @@ where it happens.
 
 - `print(...)`, `println(...)`, `eprint(...)` and `eprintln(...)` are written with
   parentheses and take one string argument.
-- When the argument is an `f"..."`, the compiler keeps doing what it does today for
-  `println "..."`: it writes each piece directly to the stream, with no allocation.
-  With any other string expression it prints that string.
+- They are ordinary functions of `std/io.zc` (`fn println(s: const char*)`), imported like
+  any other part of the standard library. They can be passed as values, searched for as
+  calls and replaced, like any function.
+- The argument is printed as text, never as a format: a `%` in it is printed as is.
+- An argument that is not a string is a type error, as for any function: `println(n)` with
+  an `int` is written `println(f"{n}")`.
+- An `f"..."` argument is built as a value first (see part 3) and then printed. Writing its
+  pieces straight to the stream, as `println "..."` does today, with no buffer, is an
+  optimization the compiler can add later without changing the result.
 - A string literal written as a statement is just an unused expression (a warning),
   not a print order. This frees string literals to be block values.
 
-`std/io.zc` already has `print(fmt, ...)` and `println(fmt, ...)` functions in the
-`printf` style. Those could stay under another name or merge with these. That
-decision is independent of the rest.
+`std/io.zc` has `print(fmt, ...)` and `println(fmt, ...)` functions in the `printf` style,
+which would clash with these. They are replaced: printing a string is covered by the new
+functions, and formatting with `%d` is `printf` itself. Merging them (a format plus
+arguments) would give two ways to format, and an `f"..."` used as a format would read any
+`%` in the interpolated text as a directive.
+
+The other printing shortcuts go the same way:
+
+| Today | Replacement |
+|---|---|
+| `"text"..` (prints without a newline) | `print("text")` |
+| `!"text"` (prints to stderr) | `eprintln("text")` |
+| `?"prompt"(a, b)` (prints a prompt and reads with `scanf`) | `print("prompt")`, then `readln()` and a conversion |
+
+The last one has no one-call replacement yet; a function that reads with a prompt can be
+proposed separately.
 
 ### 3. Who owns an `f"..."` used as a value
 
@@ -158,11 +194,18 @@ Almost all of this is mechanical:
 
 ## Migration
 
-1. One release accepts both forms. The old ones give a warning with the replacement
-   (`'println "..."' is deprecated; use 'println(f"...")'`), the same way the removed
-   `unless`, `repeat` and `do ... while` now give a migration error.
-2. A script, or a `zc fix` command, rewrites the forms above.
-3. The next release turns the warnings into errors.
+1. For one release the old forms do not compile: the error names the replacement, the same
+   way the removed `unless`, `repeat` and `do ... while` now give a migration error. A
+   warning is not enough here: `println "total: {n}"` would still compile and, once plain
+   strings stop interpolating, print the braces. For part 1 the errors are
+   `only f"..." strings interpolate` and, for `{{` / `}}` where they mean one brace,
+   `'{{' and '}}' only escape braces in f"..." strings`; adding the `f` keeps the meaning.
+2. Code is migrated by hand, following those errors: each one names the fix. The forms
+   that would still compile and print nothing (a bare string, `!"..."`, a string as the arm of
+   a `match` statement) are errors too; `println "..."` and the other removed keywords are
+   syntax errors.
+3. In the next release the errors go away: a plain `"..."` is an ordinary string and `{` in
+   it is plain text.
 
 ## Drawbacks
 
@@ -186,8 +229,6 @@ Almost all of this is mechanical:
 ## Unresolved questions
 
 - Part 3: which option, and when (tied to the memory model).
-- Whether `print(fmt, ...)` from `std/io.zc` stays, is renamed, or merges with the new
-  `print`.
 - Whether `f"..."` accepts quotes inside `{...}` (C#-style), which the current lexer
   does not.
-- The length of the deprecation period.
+- A replacement for `?"prompt"(a, b)` (reading with a prompt in one call).
