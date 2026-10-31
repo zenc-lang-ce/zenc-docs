@@ -1,0 +1,303 @@
+# Changelog
+
+Every change in each release of Zen C. The [CHANGELOG.md](https://github.com/zenc-lang-ce/zenc/blob/main/CHANGELOG.md) of the compiler repository lists the most significant ones.
+
+## 0.5.0
+
+Issues and pull requests marked `OG` are in [Zuhaitz-dev/zenc-lang](https://github.com/Zuhaitz-dev/zenc-lang); the others are in [zenc-lang-ce/zenc](https://github.com/zenc-lang-ce/zenc).
+
+### Fixed
+- Security:
+  - a stack buffer overflow when mangling long or deeply nested generic, enum variant and method names ([GHSA-rv74-w6q7-h8xr](https://github.com/Zuhaitz-dev/zenc-lang/security/advisories/GHSA-rv74-w6q7-h8xr));
+  - text interpolated into the format argument of `printf`, `fprintf`, `snprintf` and other variadic calls is passed through `"%s"`, so a `%` in it is no longer read as a format directive;
+  - `//> pkg-config:` build directives run `pkg-config` without going through a shell.
+- Malformed or truncated source no longer crashes or hangs the compiler: recursion limits, end-of-file checks in every block parser, and many buffer overflows and NULL dereferences found by fuzzing. If the compiler still crashes, it says so and keeps the generated C.
+- Memory errors in the compiler:
+  - a `match` expression with more than 8 bindings in a pattern ([OG PR #517](https://github.com/Zuhaitz-dev/zenc-lang/pull/517));
+  - `Type::method` on a generic resolved to an instance with a long name ([OG PR #517](https://github.com/Zuhaitz-dev/zenc-lang/pull/517));
+  - a lambda capturing more than 32 variables ([OG PR #511](https://github.com/Zuhaitz-dev/zenc-lang/pull/511));
+  - `snprintf` results are no longer used as buffer offsets in the language server ([OG PR #526](https://github.com/Zuhaitz-dev/zenc-lang/pull/526));
+  - an f-string used as a value no longer writes past its buffer ([PR #4](https://github.com/zenc-lang-ce/zenc/pull/4));
+  - a slice literal of a type with a long name ([#17](https://github.com/zenc-lang-ce/zenc/issues/17), [PR #58](https://github.com/zenc-lang-ce/zenc/pull/58));
+  - more than 2048 trait implementations ([#26](https://github.com/zenc-lang-ce/zenc/issues/26), [PR #57](https://github.com/zenc-lang-ce/zenc/pull/57));
+  - a tuple type whose element types add up to more than 256 characters, also in the language server ([#15](https://github.com/zenc-lang-ce/zenc/issues/15), [PR #83](https://github.com/zenc-lang-ce/zenc/pull/83));
+  - undefined behavior in constant folding: `let a: int[1 << 66];` declared 4 elements on arm64. A shift by a negative amount or by 64 or more, and `LLONG_MIN / -1`, are no longer constants, and an overflow wraps around ([#28](https://github.com/zenc-lang-ce/zenc/issues/28), [PR #90](https://github.com/zenc-lang-ce/zenc/pull/90)).
+- Function bodies and `test` blocks can use anything declared further down the file, imports included: functions, methods, impls, generics and operators ([OG PR #486](https://github.com/Zuhaitz-dev/zenc-lang/pull/486)).
+- Closures and lambdas:
+  - returning a capturing closure keeps its return type and its captured values ([OG #358](https://github.com/Zuhaitz-dev/zenc-lang/issues/358), [OG #361](https://github.com/Zuhaitz-dev/zenc-lang/issues/361));
+  - non-capturing lambdas and methods (`Person::speak`) can be assigned to `fn*` pointers, also in struct fields ([OG #344](https://github.com/Zuhaitz-dev/zenc-lang/issues/344));
+  - lambdas no longer capture C library names (`sprintf`, `stdout`) or `NULL`, `true` and `false` ([OG #344](https://github.com/Zuhaitz-dev/zenc-lang/issues/344)), nor other names that are not variables outside them ([OG PR #513](https://github.com/Zuhaitz-dev/zenc-lang/pull/513));
+  - lambdas capture outer variables used anywhere in their body, not only in some kinds of statements ([OG PR #500](https://github.com/Zuhaitz-dev/zenc-lang/pull/500));
+  - lambdas can contain `for … in` loops and destructuring `let` ([OG PR #508](https://github.com/Zuhaitz-dev/zenc-lang/pull/508)), can be nested ([OG PR #510](https://github.com/Zuhaitz-dev/zenc-lang/pull/510)), and can capture fixed-size arrays ([OG PR #512](https://github.com/Zuhaitz-dev/zenc-lang/pull/512));
+  - closures inside f-strings: a `:` in the closure no longer cuts the expression, the return type is inferred, and captures are read in f-strings used as expressions ([OG PR #509](https://github.com/Zuhaitz-dev/zenc-lang/pull/509));
+  - lambdas inside generic functions get one definition per instance;
+  - closures that capture a function pointer compile ([OG #418](https://github.com/Zuhaitz-dev/zenc-lang/issues/418), [OG PR #469](https://github.com/Zuhaitz-dev/zenc-lang/pull/469)).
+- Traits:
+  - a struct pointer converts to a trait object: `(Greeter)ptr`, `let g: Greeter = &h;` ([OG #343](https://github.com/Zuhaitz-dev/zenc-lang/issues/343));
+  - a trait method returning a generic type (`-> Vec<char*>`) compiles ([OG #342](https://github.com/Zuhaitz-dev/zenc-lang/issues/342));
+  - `@unused` on methods of an `impl` block, generic or not, is no longer ignored.
+- Generics:
+  - pointer type arguments: `Option<T*>`, `Map<MyStruct*>` ([OG #350](https://github.com/Zuhaitz-dev/zenc-lang/issues/350), [OG #328](https://github.com/Zuhaitz-dev/zenc-lang/issues/328));
+  - generic structs with slice fields (`data: T[]`);
+  - generic function bodies can use `match` destructuring, `defer` and ternaries, and `sizeof`, casts and local types are substituted per instance;
+  - a static call on a generic path (`Option<V>::None()`) no longer ties the template to an unrelated instance (`Map<JsonValue>::get` returned `Option<Vec<DirEntry>>`);
+  - the annotation of `let x: Foo<int> = make()` selects the instance, and methods of generic `impl` blocks are found as templates;
+  - an instance is no longer accepted where another instance of the same generic is expected (`Id<OrderKind>` for `Id<UserKind>`); through a pointer the program used to build and run with the wrong value ([OG PR #521](https://github.com/Zuhaitz-dev/zenc-lang/pull/521));
+  - `Map<K, V>` instances are named `Map__K__V` everywhere, and a module function whose name starts with `__` can be called (`util::__name()`) ([PR #2](https://github.com/zenc-lang-ce/zenc/pull/2)).
+- Enums and `match`:
+  - variants shared by several enums call the right constructor, also without `()` on a generic instance (`Maybe<int>::Nothing`) ([OG PR #450](https://github.com/Zuhaitz-dev/zenc-lang/pull/450));
+  - explicit values (`Ok = 200`, hex, negative) reach the C enum and `match` ([OG #399](https://github.com/Zuhaitz-dev/zenc-lang/issues/399), [OG PR #480](https://github.com/Zuhaitz-dev/zenc-lang/pull/480));
+  - enums without payloads compare with `==` and cast to integers;
+  - `Enum::Variant` without `()` used as a value calls the constructor;
+  - `match` on a variant whose name contains `_`;
+  - `match` bindings on `Result` and `Option` get the payload type, so `Ok(s) => s.length()` works;
+  - enum variants with more than 32 payload types no longer crash the compiler;
+  - a `match` expression is parsed like a `match` statement: its patterns take literals, ranges, `||` and strings, and its bindings are typed. Each arm is emitted as a value, so a nested `match`, an `if` or a string literal can be the value of an arm, and an arm can `return` or `assert`;
+  - a struct pattern (`Opt { has: true, val: v } =>`) is an error: the field values were ignored, so it matched any value, even `None`, or generated invalid C ([#38](https://github.com/zenc-lang-ce/zenc/issues/38), [PR #93](https://github.com/zenc-lang-ce/zenc/pull/93));
+  - enums with `@link_name` use the C name everywhere ([PR #63](https://github.com/zenc-lang-ce/zenc/pull/63)).
+- `@derive`:
+  - `@derive(Eq)` on an enum with payloads compares the values of the variant, not only the variant: `Just(1) == Just(5)` was `true` ([OG PR #520](https://github.com/Zuhaitz-dev/zenc-lang/pull/520));
+  - `@derive(Eq)`, `Clone`, `Debug`, `FromJson` and `ToJson` work on generic structs and enums; no instance got the methods ([OG PR #520](https://github.com/Zuhaitz-dev/zenc-lang/pull/520));
+  - `@derive(Eq)` compiles on enums without payloads ([OG #316](https://github.com/Zuhaitz-dev/zenc-lang/issues/316), [OG PR #484](https://github.com/Zuhaitz-dev/zenc-lang/pull/484));
+  - `@derive(Clone)` clones `String` and `Vec` fields instead of sharing them (double free) ([OG #431](https://github.com/Zuhaitz-dev/zenc-lang/issues/431), [OG PR #485](https://github.com/Zuhaitz-dev/zenc-lang/pull/485)).
+- Method calls:
+  - fill in default arguments and convert `&x` to trait objects ([OG PR #453](https://github.com/Zuhaitz-dev/zenc-lang/pull/453));
+  - resolve on enum values, also inside f-strings ([OG PR #453](https://github.com/Zuhaitz-dev/zenc-lang/pull/453));
+  - work on temporaries as receivers (`v.get(0).id == id`, `E::V.f()`) ([OG PR #464](https://github.com/Zuhaitz-dev/zenc-lang/pull/464)).
+- Operators:
+  - `a != b` uses `eq` when there is no `neq`, also on instances of generic structs ([OG PR #488](https://github.com/Zuhaitz-dev/zenc-lang/pull/488));
+  - overloaded operators pass struct operands by reference and drop temporaries (`text += &other`) ([OG #336](https://github.com/Zuhaitz-dev/zenc-lang/issues/336), [OG PR #467](https://github.com/Zuhaitz-dev/zenc-lang/pull/467));
+  - `name < index` and `name < *ptr` parse as comparisons ([OG #367](https://github.com/Zuhaitz-dev/zenc-lang/issues/367), [OG #427](https://github.com/Zuhaitz-dev/zenc-lang/issues/427), [OG PR #478](https://github.com/Zuhaitz-dev/zenc-lang/pull/478));
+  - `cond ? .a : .b` (the `self` field shorthand) parses as a ternary ([OG #324](https://github.com/Zuhaitz-dev/zenc-lang/issues/324));
+  - the `?` operator works on `Option`, and builds the `Err` or `None` it returns from the enclosing function's return type;
+  - `x[i]` on a temporary calls `get` through a temporary variable instead of taking the address of a value that has none ([#65](https://github.com/zenc-lang-ce/zenc/issues/65), [PR #66](https://github.com/zenc-lang-ce/zenc/pull/66));
+  - a unary operator (`-x`, `!x`, `~x`) overloaded in `impl Trait for X` ([PR #48](https://github.com/zenc-lang-ce/zenc/pull/48)).
+- Loops:
+  - `continue` in `for i, v in arr` advances the index instead of looping forever ([OG #359](https://github.com/Zuhaitz-dev/zenc-lang/issues/359));
+  - method calls on fields of the loop variable over `Vec<T*>` (`o.inner.get()`) ([OG #349](https://github.com/Zuhaitz-dev/zenc-lang/issues/349), [OG PR #482](https://github.com/Zuhaitz-dev/zenc-lang/pull/482));
+  - `let t = s;` inside a `for x in v` loop keeps the element type ([OG #377](https://github.com/Zuhaitz-dev/zenc-lang/issues/377), [OG PR #475](https://github.com/Zuhaitz-dev/zenc-lang/pull/475));
+  - a `break` or `continue` nested in more than 64 loops runs the right defers ([OG PR #517](https://github.com/Zuhaitz-dev/zenc-lang/pull/517));
+  - a stray `break` after a `for i, x in a..b` loop is reported by `zc` instead of the C compiler ([OG PR #517](https://github.com/Zuhaitz-dev/zenc-lang/pull/517)).
+- `defer` with `it` works in any expression (`it[1]`, `(int)it`, ternaries) ([OG PR #503](https://github.com/Zuhaitz-dev/zenc-lang/pull/503)).
+- Nested tuples (`((int, int), (int, int))`) generate valid C.
+- Strings and interpolation:
+  - interpolations are no longer lost in `-O2` and `--release` builds; temporaries are evaluated once and freed once ([OG #385](https://github.com/Zuhaitz-dev/zenc-lang/issues/385));
+  - a `String` field in an interpolation (`{p.name}`) ([OG #384](https://github.com/Zuhaitz-dev/zenc-lang/issues/384));
+  - raw strings `r"..."` and `r"""..."""` are not interpolated ([OG #397](https://github.com/Zuhaitz-dev/zenc-lang/issues/397));
+  - non-`char` pointers print with `%p`, and values of unknown type fall back to `%s` instead of failing in C;
+  - a `rune` interpolates without importing `std/io.zc`;
+  - moves are checked inside interpolations (`f"{a.c_str()}"` after `let b = a;`) ([OG #378](https://github.com/Zuhaitz-dev/zenc-lang/issues/378), [OG #383](https://github.com/Zuhaitz-dev/zenc-lang/issues/383), [OG PR #483](https://github.com/Zuhaitz-dev/zenc-lang/pull/483));
+  - `assert` and `expect` interpolate an `f"..."` message ([OG #402](https://github.com/Zuhaitz-dev/zenc-lang/issues/402), [OG PR #473](https://github.com/Zuhaitz-dev/zenc-lang/pull/473));
+  - several crashes in f-string parsing.
+- Modules and imports:
+  - `mod::fn()` and `mod::Type::method()` resolve after a plain `import "mod.zc"`;
+  - types used inside a module no longer get that module's prefix (`mod__Type`);
+  - `extern fn` and `extern let` keep their C names inside modules, and `extern let x: T;` keeps its declaration instead of vanishing ([OG PR #455](https://github.com/Zuhaitz-dev/zenc-lang/pull/455));
+  - modules imported with `as` no longer clash when they share a file name ([OG PR #454](https://github.com/Zuhaitz-dev/zenc-lang/pull/454));
+  - `import "math.h" as m` keeps its alias when a module imported earlier already included `math.h` ([OG PR #463](https://github.com/Zuhaitz-dev/zenc-lang/pull/463));
+  - a header imported twice (directly and through a std module) is no longer reported as a circular import;
+  - importing `std/arena.zc` no longer forms an import cycle;
+  - selective imports (`import {a, b} from`) take more than 32 names;
+  - a function shared by several modules gets one prototype in the C output;
+  - methods `_name` and `name` on the same type no longer collide in C;
+  - errors in an imported file are reported with that file's path, not the importer's ([OG PR #487](https://github.com/Zuhaitz-dev/zenc-lang/pull/487)).
+- Opaque aliases ([OG PR #490](https://github.com/Zuhaitz-dev/zenc-lang/pull/490)):
+  - `self` and generic arguments (`Option<UserId>`) keep the alias type;
+  - arguments are checked like `let`: `UserId` and `ItemId` no longer mix;
+  - in their own module, two different aliases are not interchangeable;
+  - in their own module, an alias of a number compares with numbers (`*self == 0`).
+- `@link_name` structs: literals, and variables inside loops, methods and `test` blocks, use the C name ([OG PR #501](https://github.com/Zuhaitz-dev/zenc-lang/pull/501), [OG PR #514](https://github.com/Zuhaitz-dev/zenc-lang/pull/514)), and so do generic instances, casts and `sizeof` of a type with `@link_name` ([#41](https://github.com/zenc-lang-ce/zenc/issues/41), [PR #73](https://github.com/zenc-lang-ce/zenc/pull/73)).
+- `def` constants keep their sign and their 64 bits (`def NEG = -1;`, `def BIG: u64 = 0xcbf29ce484222325;`) ([OG #322](https://github.com/Zuhaitz-dev/zenc-lang/issues/322), [OG PR #472](https://github.com/Zuhaitz-dev/zenc-lang/pull/472)).
+- Drop and moves:
+  - `Set` implements `Drop` and no longer leaks ([OG #420](https://github.com/Zuhaitz-dev/zenc-lang/issues/420));
+  - by-value parameters whose type has a destructor (`String`, `Vec`, structs holding them) are dropped when the function returns;
+  - a discarded call result with Drop is dropped (`Resource::new(i);`, `items.pop();`) ([OG #406](https://github.com/Zuhaitz-dev/zenc-lang/issues/406), [OG PR #471](https://github.com/Zuhaitz-dev/zenc-lang/pull/471));
+  - `x.forget()` after moving `x` is not reported as a use after move.
+- Generated C:
+  - each type is declared before the types that use it ([OG PR #452](https://github.com/Zuhaitz-dev/zenc-lang/pull/452));
+  - indexing through a pointer (`self.rows.data[r].push(v)`) uses plain array indexing instead of the `[]` overload, which produced invalid C;
+  - empty struct initializers are emitted as `{0}`;
+  - every variable of a top-level `let a = 1, b = 2;` is emitted, `static` and `@thread_local` globals keep their storage class, and `@cfg` alternatives of one global are all kept ([#18](https://github.com/zenc-lang-ce/zenc/issues/18), [#59](https://github.com/zenc-lang-ce/zenc/issues/59), [#60](https://github.com/zenc-lang-ce/zenc/issues/60), [PR #67](https://github.com/zenc-lang-ce/zenc/pull/67));
+  - a local without a declared type no longer takes the type of a variable with the same name in another function ([#62](https://github.com/zenc-lang-ce/zenc/issues/62), [PR #68](https://github.com/zenc-lang-ce/zenc/pull/68));
+  - a string literal can be the value of an `if` expression ([#39](https://github.com/zenc-lang-ce/zenc/issues/39), [PR #74](https://github.com/zenc-lang-ce/zenc/pull/74));
+  - a temporary that needs an address (a method receiver, an index or `==` overload operand) is copied with its type instead of `__typeof__` ([PR #70](https://github.com/zenc-lang-ce/zenc/pull/70)), and with `--cpp` it stays alive during the call ([#69](https://github.com/zenc-lang-ce/zenc/issues/69), [PR #72](https://github.com/zenc-lang-ce/zenc/pull/72));
+  - a `defer` right after `let x = v;` is its own statement instead of being read as `let x = v defer …`.
+- `comptime` blocks process escapes in strings, and inside a function their output is parsed as statements ([OG PR #451](https://github.com/Zuhaitz-dev/zenc-lang/pull/451)).
+- `readln(...)` reads a `string` or `char*` argument into a new string instead of writing over the pointer, and each integer with a conversion of its size: a `bool` or a `u16` overwrote the bytes after it ([#24](https://github.com/zenc-lang-ce/zenc/issues/24), [PR #91](https://github.com/zenc-lang-ce/zenc/pull/91)).
+- `zc build foo.zc` without `-o` no longer overwrites, and then deletes, a `foo.c` of the user in the same directory.
+- `zc check` (`--typecheck`):
+  - checks method bodies in `trait` and `impl` blocks ([OG #347](https://github.com/Zuhaitz-dev/zenc-lang/issues/347));
+  - methods can call methods defined further down the same `impl`;
+  - a `T*` argument assigned to a `T` variable is accepted for `Copy` structs ([OG #356](https://github.com/Zuhaitz-dev/zenc-lang/issues/356));
+  - assigning to a variable captured by value in a lambda is reported ([OG #358](https://github.com/Zuhaitz-dev/zenc-lang/issues/358));
+  - an infinite loop without `break` counts as returning;
+  - errors inside the standard library are not reported: the instances of `Vec<T>` with a `T` that implements `Drop` got false move errors, so every program that imports `std/io.zc` failed ([#45](https://github.com/zenc-lang-ce/zenc/issues/45), [PR #95](https://github.com/zenc-lang-ce/zenc/pull/95)).
+- Diagnostics:
+  - no unknown-type warning for C type names like `uint32_t` ([OG #365](https://github.com/Zuhaitz-dev/zenc-lang/issues/365));
+  - errors inside lambdas and `match` point at the right line.
+- `--misra` reports Rule 16.4 once for a `match` without a default arm ([#29](https://github.com/zenc-lang-ce/zenc/issues/29), [PR #55](https://github.com/zenc-lang-ce/zenc/pull/55)), no longer reports Rule 17.7 for `return f();`, and builds a program end to end: every program used to fail with rule 5.10 on the compiler's own `true` and `false`, and the MISRA preamble lacked `ZC_FUNC`, `ZC_GLOBAL` and `string` ([OG PR #519](https://github.com/Zuhaitz-dev/zenc-lang/pull/519)).
+- `zc transpile -o FILE` no longer overwrites its output with a temporary file, and replaces an existing `FILE` on Windows too ([OG PR #519](https://github.com/Zuhaitz-dev/zenc-lang/pull/519)).
+- Platforms:
+  - Windows: UTF-8 console output ([OG #338](https://github.com/Zuhaitz-dev/zenc-lang/issues/338)), `String` case-insensitive comparison without `strcasecmp`, `std/time.zc` no longer redeclares `time()`, built programs link statically, and a failure to run them shows the OS error;
+  - `@cfg(apple)` is set on macOS (so `std/sync.zc` barriers work) and `@cfg(windows)` on Windows;
+  - a macro name clash on Termux ([OG PR #447](https://github.com/Zuhaitz-dev/zenc-lang/pull/447), Yuuki1578);
+  - Windows: `zc` restores the console code page when it exits ([#86](https://github.com/zenc-lang-ce/zenc/issues/86), [PR #87](https://github.com/zenc-lang-ce/zenc/pull/87)), `build.bat` builds without libtcc ([PR #47](https://github.com/zenc-lang-ce/zenc/pull/47)) and, like CMake, builds `zc-lsp`, `zc-repl`, `zc-doc` and `zc-format` ([PR #71](https://github.com/zenc-lang-ce/zenc/pull/71));
+  - macOS: `std/sys/info.zc` uses the system's `struct utsname`; `uname()` wrote past the Linux-sized one.
+- The C compiler receives the `-I` paths and the input file's directory, with `-iquote` for relative `#include`s, and no empty `-I`.
+- Installation:
+  - an installed `zc` finds its standard library in `PREFIX/share/zenc` without `-I` ([OG PR #524](https://github.com/Zuhaitz-dev/zenc-lang/pull/524));
+  - std lookup follows one order: `-I` paths, `ZC_ROOT`, `/usr/local/share/zenc`, `/usr/share/zenc`; the compiler also finds `std.zc` by walking up from its own location, and std modules are loaded from one location only;
+  - an installed `zc` compiles programs that import `std/regex.zc` and resolves `@link("std/...")` paths;
+  - Make and CMake install `std.zc`, and CMake installs to `share/zenc` ([OG PR #448](https://github.com/Zuhaitz-dev/zenc-lang/pull/448), robknopf);
+  - `zc --version` shows the new version after a rebuild.
+- Building the compiler:
+  - with TCC, zig cc and Cosmopolitan (APE);
+  - plain `make` works without libtcc (the REPL JIT is enabled only when found) ([OG #437](https://github.com/Zuhaitz-dev/zenc-lang/issues/437), [OG PR #465](https://github.com/Zuhaitz-dev/zenc-lang/pull/465));
+  - with clang older than 14 (`-Wreturn-stack-address`) ([OG #440](https://github.com/Zuhaitz-dev/zenc-lang/issues/440), [OG PR #466](https://github.com/Zuhaitz-dev/zenc-lang/pull/466));
+  - with `ZC_LSP=0` or `ZC_REPL=0`, the tools whose sources it excludes are left out ([OG PR #515](https://github.com/Zuhaitz-dev/zenc-lang/pull/515));
+  - with `ZC_NO_PLUGINS` (it failed to link).
+- Embedding the compiler (`driver_compile`): the caller's configuration is used throughout ([OG PR #494](https://github.com/Zuhaitz-dev/zenc-lang/pull/494), [OG PR #495](https://github.com/Zuhaitz-dev/zenc-lang/pull/495)), and a compilation after one with errors no longer fails ([OG PR #507](https://github.com/Zuhaitz-dev/zenc-lang/pull/507)).
+- LSP:
+  - crashes and memory leaks in completion, go to definition, find references and indexing;
+  - client timeouts while indexing the workspace;
+  - re-analysing a file no longer reports redefinitions from files indexed before;
+  - an unresolved import no longer crashes the server ([OG PR #396](https://github.com/Zuhaitz-dev/zenc-lang/pull/396), robknopf);
+  - the server writes to stderr only with `--verbose`, which broke Neovim ("cannot resume dead coroutine");
+  - each response carries the request's id as the client sent it, a string too ([#19](https://github.com/zenc-lang-ce/zenc/issues/19), [PR #75](https://github.com/zenc-lang-ce/zenc/pull/75));
+  - after about a thousand edits with a type error, every type failed to parse until a restart ([#16](https://github.com/zenc-lang-ce/zenc/issues/16), [PR #76](https://github.com/zenc-lang-ce/zenc/pull/76));
+  - words inside comments and strings are no longer colored as keywords ([#32](https://github.com/zenc-lang-ce/zenc/issues/32), [PR #81](https://github.com/zenc-lang-ce/zenc/pull/81));
+  - on Windows the server answers `initialize` ([PR #82](https://github.com/zenc-lang-ce/zenc/pull/82));
+  - the server stops indexing when the editor has exited, instead of running on ([PR #79](https://github.com/zenc-lang-ce/zenc/pull/79));
+  - methods are offered after `value.` and `Type::`, also on generic instances, and a member being typed completes like the members ([#88](https://github.com/zenc-lang-ce/zenc/issues/88), [PR #89](https://github.com/zenc-lang-ce/zenc/pull/89)).
+- REPL: Ctrl+C no longer locks multi-line input, crashes are fixed, `:c`, `:type` and `:run` work on Windows, APE builds and with the standalone `zc-repl`, and `:plot` compiles ([#43](https://github.com/zenc-lang-ce/zenc/issues/43), [PR #54](https://github.com/zenc-lang-ce/zenc/pull/54)).
+- `zc -h` lists only the options `zc` parses ([#21](https://github.com/zenc-lang-ce/zenc/issues/21), [PR #56](https://github.com/zenc-lang-ce/zenc/pull/56)), and `zc help doc` shows the options of `zc-doc` ([#31](https://github.com/zenc-lang-ce/zenc/issues/31), [PR #53](https://github.com/zenc-lang-ce/zenc/pull/53)).
+- The Forth and Befunge plugins accept CRLF line endings.
+
+### Added
+- Language:
+  - `const self` methods, in `impl` and in traits;
+  - several variables in one `let`: `let a = 1, b = 2;`;
+  - `@thread_local static let x: T;`, and `static let` at file scope;
+  - `@crepr("struct timeval")` maps a struct to an existing C type, and `@link("file.c")` compiles and links a C file with the program;
+  - `export import "file.zc"` re-exports a module;
+  - `null` in C mode;
+  - arrays in `comptime` blocks (declaration, indexing, casts; out-of-bounds indexes are compile errors).
+- A failed `assert` or `expect`, a `panic` and an index out of bounds say where they are in the source (`file:line:`).
+- Escape analysis in `zc check`: returning or storing the address of a local is an error, also through arrays, struct fields, and functions or methods that return one of their pointer arguments (lifetime elision).
+- Clear errors instead of broken C for:
+  - top-level `const` ([OG PR #458](https://github.com/Zuhaitz-dev/zenc-lang/pull/458)), and anything else that does not start a top-level declaration (`pub fn`, a stray `}`, `namespace`) ([OG PR #463](https://github.com/Zuhaitz-dev/zenc-lang/pull/463));
+  - C keywords used as names (`let double`) ([OG PR #456](https://github.com/Zuhaitz-dev/zenc-lang/pull/456));
+  - `x as T`, with a hint towards `(T)x` ([OG PR #522](https://github.com/Zuhaitz-dev/zenc-lang/pull/522));
+  - a struct named like a std generic ([OG PR #457](https://github.com/Zuhaitz-dev/zenc-lang/pull/457)), and a struct defined twice ([OG PR #354](https://github.com/Zuhaitz-dev/zenc-lang/pull/354), jiang1997);
+  - functions and methods defined twice ([OG #178](https://github.com/Zuhaitz-dev/zenc-lang/issues/178), [OG PR #476](https://github.com/Zuhaitz-dev/zenc-lang/pull/476));
+  - circular imports;
+  - `break` and `continue` outside a loop;
+  - an initializer of an unrelated type (`let x: int = "text"`);
+  - prefix pointers (`*Type`; Zen C uses `Type*`);
+  - leftover tokens in an interpolation (`f"{x y}"`, code in an `f"""` string) ([OG #368](https://github.com/Zuhaitz-dev/zenc-lang/issues/368), [OG PR #470](https://github.com/Zuhaitz-dev/zenc-lang/pull/470));
+  - a C string or number as the operand of an overload that takes a struct (`String += "x"`) ([OG #336](https://github.com/Zuhaitz-dev/zenc-lang/issues/336), [OG PR #467](https://github.com/Zuhaitz-dev/zenc-lang/pull/467));
+  - a global initialized with an f-string ([OG #411](https://github.com/Zuhaitz-dev/zenc-lang/issues/411), [OG PR #477](https://github.com/Zuhaitz-dev/zenc-lang/pull/477));
+  - an unknown trait in `@derive` (`@derive(Cpy)`) ([OG PR #489](https://github.com/Zuhaitz-dev/zenc-lang/pull/489));
+  - a function whose closing `}` is missing at the end of the file (`Unclosed '{'`) ([OG PR #486](https://github.com/Zuhaitz-dev/zenc-lang/pull/486));
+  - `autofree`, `async`, `await`, `unless`, `guard`, `repeat` and `do … while` (see Removed), with the replacement;
+  - a match arm written with `->`, and `->` used as a lambda arrow (`x -> x * 2`, `(a, b) -> a + b`), with a hint towards `=>` ([PR #94](https://github.com/zenc-lang-ce/zenc/pull/94)).
+- Testing:
+  - `expect(cond, msg)`, a check that records the failure and goes on;
+  - `std/test.zc`, imported in `test` blocks: `expect_eq`, `expect_ne`, `expect_approx_eq`;
+  - each `test` block reports `OK` or `FAIL`, a failure no longer stops the other tests, and the exit code is the number of failed tests.
+- Backends: `--backend NAME` with `c`, `cpp`, `cuda`, `objc`, `json` (the AST), `ast-dump`, `lisp` (Common Lisp) and `dot` (Graphviz), plus `--backend-opt key=value`; `--cpp`, `--cuda` and `--objc` stay as aliases. CUDA and Objective-C builds get their own compiler flags, and the C++ backend compiles the standard library. An unknown `--backend` name is an error, with a suggestion ([OG PR #515](https://github.com/Zuhaitz-dev/zenc-lang/pull/515)).
+- `--filcc` builds with Fil-C, the memory-safe C compiler.
+- MISRA:
+  - `--misra` checks MISRA C:2012 rules and directives, plus Zen rules (no `raw` or `plugin` blocks, no `#` directives, no `_` arm on enum matches, no shadowing, reserved names, no tuples of 3 or more fields, no `string == string`);
+  - `--profile c11|hosted|misra-c2012` (`--misra` is `misra-c2012`); MISRA output has no `#line` directives (Rule 20.13);
+  - `@cfg(misra)`, and `@cfg(freestanding)` with `--freestanding`;
+  - `StaticArena`, a fixed buffer used for allocation in MISRA builds.
+- CLI:
+  - `zc help` and `zc help <command>`;
+  - `zc run FILE ARGS...` passes the arguments to the program, and so does everything after `--` ([#30](https://github.com/zenc-lang-ce/zenc/issues/30), [PR #92](https://github.com/zenc-lang-ce/zenc/pull/92));
+  - `zc` reports an unknown command instead of building silently (`zc test f.zc`) ([OG #409](https://github.com/Zuhaitz-dev/zenc-lang/issues/409), [OG PR #468](https://github.com/Zuhaitz-dev/zenc-lang/pull/468));
+  - `-W<group>` and `-Wno-<group>` turn Zen C diagnostics on or off (`unused`, `safety`, `logic`, `conversion`, `pedantic`, `interop`); other `-W` flags still go to the C compiler;
+  - `--no-suppress-warnings` (see Changed) ([OG #341](https://github.com/Zuhaitz-dev/zenc-lang/issues/341));
+  - `zc doc FILE` (`zc-doc`) writes Markdown documentation from `///` and `/** */` comments, generic `impl` methods included.
+- `zenc.json` accepts `"c_types"`: C type names that the unknown-type check accepts.
+- Standard library:
+  - `Option`: `unwrap_or_else`, `is_some_and`, `is_none_or`, `filter`; `Result`: `unwrap_or`, `unwrap_or_else`, `ok`, `err`, `map_err`, `is_ok_and`, `is_err_and`, `expect_err`;
+  - `String`: `clone` ([OG #431](https://github.com/Zuhaitz-dev/zenc-lang/issues/431), [OG PR #485](https://github.com/Zuhaitz-dev/zenc-lang/pull/485)), `to_int`, `repeated`, `reverse`, `trim_start`, `trim_end`;
+  - `VecIter`: `collect`, `count`, `forEach`, `find`, `any`, `all`, `filter`, `fold`;
+  - `BigInt`: `compare`, `is_zero`, `from_string`, `sub`, `mul`, `div`, `rem`; `BigFloat`: `compare`, `sub`, `mul`, `div`, `from_string`;
+  - `Base64::decode`;
+  - a generic `sort<T>(arr, len)`;
+  - `std/mem.zc`: `realloc_n`, `dealloc`, `alloc_bytes`, `zalloc_bytes`;
+  - `std/plugin.zc`, to write compiler plugins in Zen C;
+  - `///` documentation comments on the main modules.
+- REPL: runs code in process through libtcc, `zc-repl -c "code"`, tab completion of keywords, commands and session symbols, and `:` commands such as `:type`, `:time`, `:c`, `:show`, `:save` and `:load`.
+- LSP:
+  - project-wide definition and hover, percent-encoded file URIs, completion filtered by the typed prefix, and types colored as types ([OG PR #442](https://github.com/Zuhaitz-dev/zenc-lang/pull/442), PigeonCoding);
+  - hover, go to definition and completion for C headers ([OG PR #491](https://github.com/Zuhaitz-dev/zenc-lang/pull/491));
+  - `workspace/symbol` ([OG PR #462](https://github.com/Zuhaitz-dev/zenc-lang/pull/462)) and go to declaration ([OG PR #460](https://github.com/Zuhaitz-dev/zenc-lang/pull/460));
+  - full signatures on hover ([OG PR #461](https://github.com/Zuhaitz-dev/zenc-lang/pull/461));
+  - formatting, and signature help that marks the active parameter;
+  - completion of keywords and types, `Enum::Variant`, and members through generics and methods (`a.b.`);
+  - `break` and `continue` offered in every kind of loop, also nested in `match` ([OG PR #505](https://github.com/Zuhaitz-dev/zenc-lang/pull/505), [OG PR #506](https://github.com/Zuhaitz-dev/zenc-lang/pull/506));
+  - hover for built-ins and for plugin blocks;
+  - code actions that replace deprecated `var` and `const`;
+  - `shutdown` and `exit`;
+  - `zenc.server.json` (include paths, `exclude`, `use_gitignore`) and `.gitignore` support when indexing ([OG PR #493](https://github.com/Zuhaitz-dev/zenc-lang/pull/493));
+  - `--verbose` startup log: version, project root, and what the workspace indexing cost ([OG PR #525](https://github.com/Zuhaitz-dev/zenc-lang/pull/525));
+  - the progress of indexing the workspace, shown in the editor's status bar ([PR #78](https://github.com/zenc-lang-ce/zenc/pull/78)).
+- Build:
+  - `make ZC_LSP=0 ZC_REPL=0 ZC_PLUGINS=0 ZC_BACKENDS=0` and the `core`, `lite` and `minimal` targets build a smaller compiler;
+  - `make format`, `lint`, `bench`, fuzzing targets, and test targets for MISRA, backends, plugins, the LSP, TCC and Fil-C.
+- Test tooling:
+  - diagnostic output tests ([OG PR #496](https://github.com/Zuhaitz-dev/zenc-lang/pull/496)) and C unit tests, `make test-unit` ([OG PR #497](https://github.com/Zuhaitz-dev/zenc-lang/pull/497)), run by the CI ([OG PR #498](https://github.com/Zuhaitz-dev/zenc-lang/pull/498));
+  - `make test-check`: files that `zc check` must accept with no errors ([OG PR #523](https://github.com/Zuhaitz-dev/zenc-lang/pull/523));
+  - the MISRA test runner matches expected errors against diagnostics only ([OG PR #459](https://github.com/Zuhaitz-dev/zenc-lang/pull/459)), and a MISRA build is tested end to end ([OG PR #519](https://github.com/Zuhaitz-dev/zenc-lang/pull/519)).
+- Documentation:
+  - German translations of the README, CONTRIBUTING, SECURITY and LSP guides ([OG PR #366](https://github.com/Zuhaitz-dev/zenc-lang/pull/366), VOIDWERK);
+  - the README and its translations describe runes and the `test` framework ([OG #338](https://github.com/Zuhaitz-dev/zenc-lang/issues/338));
+  - `MANGLING.md`, `STYLE.md` and the compiler conventions in `CONTRIBUTING.md`.
+
+### Changed
+- Strings (RFC 0001):
+  - only `f"..."` interpolates, and `{{` / `}}` are escapes only there; a plain `"..."` that relies on the old interpolation is an error for this release ([PR #5](https://github.com/zenc-lang-ce/zenc/pull/5));
+  - `print`, `println`, `eprint` and `eprintln` are functions of `std/io.zc` that take one string and print it as text: `println(f"total: {n}")`. They need `import "std/io.zc"`, and the old forms that would compile and print nothing are errors, with the replacement ([PR #50](https://github.com/zenc-lang-ce/zenc/pull/50), [PR #51](https://github.com/zenc-lang-ce/zenc/pull/51), [PR #61](https://github.com/zenc-lang-ce/zenc/pull/61)).
+- Lambdas and match arms take `=>`, and `->` is member access through a pointer and the return type arrow: `p->value` reads the field, also when `p` is a plain identifier, where it used to be the lambda `p => value` ([#46](https://github.com/zenc-lang-ce/zenc/issues/46), [PR #94](https://github.com/zenc-lang-ce/zenc/pull/94)).
+- `x[i]` calls the `get` method of a struct, and only `get` ([#33](https://github.com/zenc-lang-ce/zenc/issues/33), [PR #64](https://github.com/zenc-lang-ce/zenc/pull/64)).
+- A failed `assert` outside a `test` block stops the program with exit code 1, instead of going on and exiting with 0.
+- The LSP, REPL, documentation generator and formatter are separate programs: `zc-lsp`, `zc-repl`, `zc-doc` and `zc-format`. `zc lsp`, `zc repl`, `zc doc` and `zc format` still work but are deprecated, and `--zen` is gone.
+- `comptime` blocks run in an interpreter inside the compiler (`let`, loops, `if`, string concatenation, `code()`, `yield()`, `compile_error`, `compile_warn`).
+- `zc check` follows the build's rules: match bindings, aliases, `p[i]`, pointer/value, and omitted struct fields (required only in MISRA mode) ([OG PR #523](https://github.com/Zuhaitz-dev/zenc-lang/pull/523)).
+- Output is shorter by default: `zc` prints only "Compiling FILE"; `-v` shows each phase. `zc --help` is a short usage summary.
+- Diagnostics go through one path: errors and warnings are counted once, also with `--json`, and hints print the same way everywhere ([OG PR #496](https://github.com/Zuhaitz-dev/zenc-lang/pull/496), [OG PR #497](https://github.com/Zuhaitz-dev/zenc-lang/pull/497)).
+- C compiler warnings caused by the generated code (`-Wparentheses`, unused values and variables, sign comparison, missing field initializers) are silenced by default; `--no-suppress-warnings` shows them ([OG #341](https://github.com/Zuhaitz-dev/zenc-lang/issues/341)).
+- `#define` and `#include` in Zen C code are deprecated with a warning: use `def` and `import`.
+- `c_long_long` and `c_ulong_long` are now `c_longlong` and `c_ulonglong`.
+- Standard library:
+  - `to_string()` returns `char*` everywhere (`Complex` and `JsonValue` returned `String`);
+  - `length()` and `free()` are the canonical names; `len()` (JSON) and `free_mem()` (`BigInt`, `BigFloat`) remain as deprecated aliases;
+  - `alloc`, `alloc_n` and `zalloc` return zeroed memory, and `realloc_n` zeroes the new tail;
+  - each `Random` has its own generator state (same seeds, same sequences);
+  - `format()` can be nested: it rotates four thread-local buffers, and `itos`, `utos` and `format` are thread-safe;
+  - modules use `extern fn`, `@crepr` and `@link` instead of `raw` C blocks (`std/sys`, `time`, `json`, `sha256`, `regex`, `process`);
+  - `sort` is a generic quicksort with median-of-three pivots, and `String` building copies with `memcpy`;
+  - `std/net/http` no longer prints "Server listening";
+  - `Vec::index` is gone; use `get` or `v[i]` ([PR #64](https://github.com/zenc-lang-ce/zenc/pull/64)).
+- The DSL plugins (Befunge, Brainfuck, Forth, Lisp, SQL) are written in Zen C, the regex plugin is gone, and plugins can report diagnostics and provide hover text.
+- LSP:
+  - memory no longer grows without bound while editing ([OG PR #449](https://github.com/Zuhaitz-dev/zenc-lang/pull/449));
+  - unknown requests get `MethodNotFound` ([OG PR #460](https://github.com/Zuhaitz-dev/zenc-lang/pull/460));
+  - closing a document reverts it to the file on disk ([OG PR #492](https://github.com/Zuhaitz-dev/zenc-lang/pull/492));
+  - a project outside the compiler's tree finds the standard library ([OG PR #516](https://github.com/Zuhaitz-dev/zenc-lang/pull/516));
+  - go to definition finds variables inside ternaries, array literals and lambdas ([OG PR #499](https://github.com/Zuhaitz-dev/zenc-lang/pull/499)).
+- The language reference moved from the README to the documentation site; the installation guide was updated ([OG PR #369](https://github.com/Zuhaitz-dev/zenc-lang/pull/369), z0rhan).
+- Faster compilation: symbol and type lookups ([OG PR #444](https://github.com/Zuhaitz-dev/zenc-lang/pull/444), apocalypse9949); struct ordering and lookups in codegen (a program of 10,000 lines: 33–38 s to about 6 s); name lookups indexed by name (a program of 60 files: 4.6 s to 0.8 s; indexing a workspace of 1,206 files in the language server: 56 s to 6.5 s) ([PR #80](https://github.com/zenc-lang-ce/zenc/pull/80)).
+- Building the compiler: C23 (`gnu23`) by default, falling back to `gnu11`; `zc` no longer contains the TRE regex library, which `std/regex.zc` compiles from source.
+- Internal: the compiler source was split into many smaller files with a shared source list, the code generator writes through an emitter, global state moved into the compiler and parser contexts ([OG PR #494](https://github.com/Zuhaitz-dev/zenc-lang/pull/494), [OG PR #495](https://github.com/Zuhaitz-dev/zenc-lang/pull/495)), typecheck and MISRA checks were separated, the AST walkers share `ast_children()` ([OG PR #499](https://github.com/Zuhaitz-dev/zenc-lang/pull/499) to [OG PR #505](https://github.com/Zuhaitz-dev/zenc-lang/pull/505)), the C code generator shares its loop and defer scaffolding ([OG PR #518](https://github.com/Zuhaitz-dev/zenc-lang/pull/518)), the driver no longer sets the parser context twice ([OG #436](https://github.com/Zuhaitz-dev/zenc-lang/issues/436), [OG PR #474](https://github.com/Zuhaitz-dev/zenc-lang/pull/474)), the C names of symbols are built in one place ([PR #2](https://github.com/zenc-lang-ce/zenc/pull/2)), duplicated parser code was merged ([PR #48](https://github.com/zenc-lang-ce/zenc/pull/48)), f-strings are an AST node written by codegen ([PR #51](https://github.com/zenc-lang-ce/zenc/pull/51)), dead code was removed ([PR #49](https://github.com/zenc-lang-ce/zenc/pull/49)), and CI gained sanitizer, fuzzing, coverage, benchmark and example-build jobs; benchmark noise no longer fails pull requests ([OG PR #502](https://github.com/Zuhaitz-dev/zenc-lang/pull/502)).
+
+### Removed
+- These forms are compile errors that name their replacement:
+  - `autofree`: use `defer free(x)` or `Drop`;
+  - `async` and `await`: use `std/thread.zc`;
+  - `unless` and `guard`: use `if` and `if !`;
+  - `repeat` and `do … while`: use `for` and `while`.
+- The `? "prompt" (x)` and `? x, y` input statements, and the `print` and `println` keywords (`println "text"`): use `readln(...)` and `println(f"...")` ([PR #50](https://github.com/zenc-lang-ce/zenc/pull/50)).
