@@ -62,7 +62,7 @@ fn main() {
 Anonyme Funktionen, die ihre Umgebung erfassen können.
 ```zc
 let faktor = 2;
-let verdoppler = x -> x * faktor;  // Pfeil-Syntax
+let verdoppler = x => x * faktor;  // Pfeil-Syntax
 let komplett = fn(x: int) -> int { return x * faktor; }; // Block-Syntax
 
 // Erfassen per Referenz (Block-Syntax)
@@ -71,18 +71,18 @@ let modifizieren = fn[&]() { wert += 1; };
 modifizieren(); // wert ist jetzt 11
 
 // Erfassen per Referenz (Pfeil-Syntax)
-let modifizieren_pfeil = [&] x -> wert += x;
+let modifizieren_pfeil = [&] x => wert += x;
 modifizieren_pfeil(5); // wert ist jetzt 16
 
 // Erfassen per Referenz (Pfeil-Syntax mit mehreren Argumenten)
-let summe_hinzu = [&] (a, b) -> wert += (a + b);
+let summe_hinzu = [&] (a, b) => wert += (a + b);
 summe_hinzu(2, 2); // wert ist jetzt 20
 
 // Erfassen per Wert (Standard)
 let original = 100;
-let implizit = x -> original + x;       // Implizites Erfassen per Wert (ohne Klammern)
-let explizit = [=] x -> original + x;   // Explizites Erfassen per Wert
-// let fehler = x -> original += x;     // Fehler: Zuweisung zu erfasstem Wert nicht erlaubt
+let implizit = x => original + x;       // Implizites Erfassen per Wert (ohne Klammern)
+let explizit = [=] x => original + x;   // Explizites Erfassen per Wert
+// let fehler = x => original += x;     // Fehler: Zuweisung zu erfasstem Wert nicht erlaubt
 ```
 
 #### Roh-Funktionszeiger

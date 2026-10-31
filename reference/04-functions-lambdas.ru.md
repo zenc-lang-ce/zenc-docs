@@ -60,7 +60,7 @@ fn main() {
 Анонимные функции, которые могут захватывать своё окружение.
 ```zc
 let factor = 2;
-let udvoit = x -> x * factor; // Синтаксис стрелок
+let udvoit = x => x * factor; // Синтаксис стрелок
 let full = fn(x: int) -> int { return x * factor; }; // Блочный синтаксис
 
 // Захват по ссылке (Блочный синтаксис)
@@ -69,18 +69,18 @@ let modify = fn[&]() { val += 1; };
 modify(); // val теперь 11
 
 // Захват по ссылке (Стрелочный синтаксис)
-let modify_arrow = [&] x -> val += x;
+let modify_arrow = [&] x => val += x;
 modify_arrow(5); // val теперь 16
 
 // Захват по ссылке (Стрелочный синтаксис с несколькими аргументами)
-let sum_into = [&] (a, b) -> val += (a + b);
+let sum_into = [&] (a, b) => val += (a + b);
 sum_into(2, 2); // val теперь 20
 
 // Захват по значению (По умолчанию)
 let original = 100;
-let implicit = x -> original + x;       // Неявный захват по значению (без скобок)
-let explicit = [=] x -> original + x;   // Явный захват по значению
-// let fail = x -> original += x;       // Ошибка: нельзя присвоить захваченному значению
+let implicit = x => original + x;       // Неявный захват по значению (без скобок)
+let explicit = [=] x => original + x;   // Явный захват по значению
+// let fail = x => original += x;       // Ошибка: нельзя присвоить захваченному значению
 
 ```
 

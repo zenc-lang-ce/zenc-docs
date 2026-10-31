@@ -60,7 +60,7 @@ fn main() {
 可以捕獲環境的匿名函數。
 ```zc
 let factor = 2;
-let doubler = x -> x * factor;  // 箭頭語法
+let doubler = x => x * factor;  // 箭頭語法
 let full = fn(x: int) -> int { return x * factor; }; // 區塊語法
 
 // 引用捕獲（區塊語法）
@@ -69,18 +69,18 @@ let modify = fn[&]() { val += 1; };
 modify(); // val 現在是 11
 
 // 引用捕獲（箭頭語法）
-let modify_arrow = [&] x -> val += x;
+let modify_arrow = [&] x => val += x;
 modify_arrow(5); // val 現在是 16
 
 // 引用捕獲（多參數箭頭語法）
-let sum_into = [&] (a, b) -> val += (a + b);
+let sum_into = [&] (a, b) => val += (a + b);
 sum_into(2, 2); // val 現在是 20
 
 // 值捕獲（默認）
 let original = 100;
-let implicit = x -> original + x;       // 隱式值捕獲（無括號）
-let explicit = [=] x -> original + x;   // 顯式值捕獲
-// let fail = x -> original += x;       // 錯誤：無法賦值給捕獲的值
+let implicit = x => original + x;       // 隱式值捕獲（無括號）
+let explicit = [=] x => original + x;   // 顯式值捕獲
+// let fail = x => original += x;       // 錯誤：無法賦值給捕獲的值
 
 ```
 
