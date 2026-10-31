@@ -60,7 +60,7 @@ fn main() {
 Anonymous functions that can capture their environment.
 ```zc
 let factor = 2;
-let doubler = x -> x * factor;  // Arrow syntax
+let doubler = x => x * factor;  // Arrow syntax
 let full = fn(x: int) -> int { return x * factor; }; // Block syntax
 
 // Capture by Reference (Block Syntax)
@@ -69,18 +69,18 @@ let modify = fn[&]() { val += 1; };
 modify(); // val is now 11
 
 // Capture by Reference (Arrow Syntax)
-let modify_arrow = [&] x -> val += x;
+let modify_arrow = [&] x => val += x;
 modify_arrow(5); // val is now 16
 
 // Capture by Reference (Arrow Syntax with Multiple Arguments)
-let sum_into = [&] (a, b) -> val += (a + b);
+let sum_into = [&] (a, b) => val += (a + b);
 sum_into(2, 2); // val is now 20
 
 // Capture by Value (Default)
 let original = 100;
-let implicit = x -> original + x;       // Implicit capture by value (no brackets)
-let explicit = [=] x -> original + x;   // Explicit capture by value
-// let fail = x -> original += x;       // Error: cannot assign to captured value
+let implicit = x => original + x;       // Implicit capture by value (no brackets)
+let explicit = [=] x => original + x;   // Explicit capture by value
+// let fail = x => original += x;       // Error: cannot assign to captured value
 
 ```
 

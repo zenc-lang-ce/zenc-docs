@@ -20,7 +20,7 @@ fn apply_twice(x: int, f: fn(int) -> int) -> int {
 fn main() {
     let factor = 3;
 
-    let doubler = x -> x * 2;
+    let doubler = x => x * 2;
     println "double 5: {doubler(5)}";
 
     let multiplier = fn(x: int) -> int {
@@ -88,7 +88,7 @@ int main(void) {
 
 ## Key Differences
 
-- Arrow syntax: `x -> x * 2` for single-expression lambdas
+- Arrow syntax: `x => x * 2` for single-expression lambdas
 - Block syntax: `fn(x: int) -> int { ... }` for multi-line
 - Capture by value (implicit in arrows): captures outer variables
 - Capture by reference: `fn[&]() { val += 1 }`
