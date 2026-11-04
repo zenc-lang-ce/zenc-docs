@@ -87,7 +87,9 @@ Which branch your pull request goes to:
 - **A fix to the documentation of a released version** (a typo, a wrong example, something the release does but the docs describe wrongly): `main`, and then the same commit cherry-picked onto `release/X.Y` (`git cherry-pick -x <commit>`). If the text has changed in `main` since the release, open a separate pull request against `release/X.Y`.
 - **A patch release** (0.5.2): its changelog and any page it changes go to `release/0.5`, and the changelog entry also to `main`.
 
-When the compiler releases a new minor version X.Y, create `release/X.Y` from the commit of `main` that documents it, and `main` moves on to the next version.
+The website ([docs.zenc-lang.org](https://docs.zenc-lang.org)) publishes the latest release branch, `release/0.5`: pushes to `main` do not reach it.
+
+When the compiler releases a new minor version X.Y, create `release/X.Y` from the commit of `main` that documents it, and `main` moves on to the next version. Then point the `branches` of `.github/workflows/sync-docs.yml` and `sync-www.yml` at `release/X.Y`, in both `main` and the new branch.
 
 ### Preview the website locally
 

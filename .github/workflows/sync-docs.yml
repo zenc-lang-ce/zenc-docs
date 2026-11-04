@@ -3,7 +3,9 @@ name: Sync Standard Library Documentation
 on:
   push:
     branches:
-      - main
+      # The website shows the latest release: move this to release/X.Y when X.Y is released
+      # (see "Versions and branches" in the README)
+      - release/0.5
 
 jobs:
   sync-docs:
