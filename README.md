@@ -74,6 +74,21 @@ The legacy subcommands `zc lsp`, `zc repl`, `zc doc`, and `zc format` still work
 
 Documentation is a community effort. If you find a typo, outdated information, or want to contribute a new guide, please open a documentation issue or pull request.
 
+### Versions and branches
+
+Each released minor version of Zen C has its own branch here, so the documentation of a release does not change when the next one changes the language:
+
+- **`main`** documents the version in development, the next release (0.6 while 0.5 is the latest).
+- **`release/X.Y`** (e.g. `release/0.5`) documents the released version X.Y and its patch releases (0.5.1, 0.5.2…). It is created from `main` when X.Y is released, and from then on it only receives fixes.
+
+Which branch your pull request goes to:
+
+- **New or changed behaviour** (a new feature, syntax or standard library function, something that works differently from the last release): `main`.
+- **A fix to the documentation of a released version** (a typo, a wrong example, something the release does but the docs describe wrongly): `main`, and then the same commit cherry-picked onto `release/X.Y` (`git cherry-pick -x <commit>`). If the text has changed in `main` since the release, open a separate pull request against `release/X.Y`.
+- **A patch release** (0.5.2): its changelog and any page it changes go to `release/0.5`, and the changelog entry also to `main`.
+
+When the compiler releases a new minor version X.Y, create `release/X.Y` from the commit of `main` that documents it, and `main` moves on to the next version.
+
 ### Preview the website locally
 
 The website ([zenc-lang-ce.github.io](https://github.com/zenc-lang-ce/zenc-lang-ce.github.io)) publishes these pages through `scripts/sync_to_site.sh`. To see your changes as they will look there, clone the website next to this repository and run:
