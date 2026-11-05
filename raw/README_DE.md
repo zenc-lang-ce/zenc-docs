@@ -314,6 +314,11 @@ def SIZE = 5;
 let ints: int[SIZE] = [1, 2, 3, 4, 5];
 let zeros: [int; SIZE]; // Nullinitialisiert
 ```
+```c
+#define SIZE 5
+int ints[SIZE] = {1, 2, 3, 4, 5};
+int zeros[SIZE] = {0};
+```
 
 #### Tupel
 Mehrere Werte gruppieren, Elemente über den Index aufrufen.
@@ -321,6 +326,13 @@ Mehrere Werte gruppieren, Elemente über den Index aufrufen.
 let pair = (1, "Hallo");
 let x = pair.0;  // 1
 let s = pair.1;  // "Hallo"
+```
+```c
+typedef struct { int v0; const char *v1; } Tuple_int_string;
+
+Tuple_int_string pair = {1, "Hallo"};
+int x = pair.v0;          // 1
+const char *s = pair.v1;  // "Hallo"
 ```
 
 **Mehrere Rückgabewerte**
@@ -335,6 +347,17 @@ let ergebnis = addiere_und_subtrahiere(3, 2);
 let summe = ergebnis.0;        // 5
 let differenz = ergebnis.1;    // 1
 ```
+```c
+typedef struct { int v0; int v1; } Tuple_int_int;
+
+Tuple_int_int addiere_und_subtrahiere(int a, int b) {
+    return (Tuple_int_int){a + b, a - b};
+}
+
+Tuple_int_int ergebnis = addiere_und_subtrahiere(3, 2);
+int summe     = ergebnis.v0;  // 5
+int differenz = ergebnis.v1;  // 1
+```
 
 **Destrukturierung**
 
@@ -343,11 +366,23 @@ Tupel können direkt in Variablen zerlegt werden:
 let (summe, differenz) = addiere_und_subtrahiere(3, 2);
 // summe = 5, differenz = 1
 ```
+```c
+Tuple_int_int tmp = addiere_und_subtrahiere(3, 2);
+int summe = tmp.v0;
+int differenz = tmp.v1;
+// summe = 5, differenz = 1
+```
 
 Typisierte Tupel-Destrukturierung ermöglicht explizite Typannotationen:
 ```zc
 let (a: string, b: u8) = ("Hallo", 42);
 let (x, y: i32) = (1, 2);  // Gemischt: x abgeleitet, y explizit
+```
+```c
+const char *a = "Hallo";
+uint8_t b = 42;
+int x = 1;
+int32_t y = 2;
 ```
 
 #### Structs
@@ -366,6 +401,21 @@ struct Flags {
     valid: U8 : 1;
     mode:  U8 : 3;
 }
+```
+```c
+typedef struct {
+    int x;
+    int y;
+} Punkt;
+
+// Strukturinitialisierung
+Punkt p = { .x = 10, .y = 20 };
+
+// Bitfelder
+typedef struct {
+    uint8_t valid : 1;
+    uint8_t mode : 3;
+} Flags;
 ```
 
 > [!IMPORTANT]
@@ -393,6 +443,28 @@ fn main() {
     // let id = u.id; // Fehler: Kein Zugriff auf privates Feld 'id'
 }
 ```
+```c
+// In user.h
+typedef struct {
+    int id;
+    const char *name;
+} Benutzer;
+
+Benutzer neuer_benutzer(const char *name);
+
+// In user.c
+Benutzer neuer_benutzer(const char *name) {
+    return (Benutzer){ .id = 1, .name = name };
+}
+
+// In main.c
+#include "user.h"
+
+int main(void) {
+    Benutzer u = neuer_benutzer("Alice");
+    int id = u.id; // Kompiliert: C kennt keine privaten Felder
+}
+```
 
 #### Enums
 Markierte Vereinigungen (Summentypen), die Daten speichern können.
@@ -403,6 +475,17 @@ enum Form {
     Punkt               // keine Daten
 }
 ```
+```c
+typedef enum { Form_Kreis, Form_Rechteck, Form_Punkt } Form_Tag;
+
+typedef struct {
+    Form_Tag tag;
+    union {
+        struct { float radius; } Kreis;
+        struct { float breite, hoehe; } Rechteck;
+    } data;
+} Form;
+```
 
 #### Unions
 Standard-C-Unions (unsicherer Zugriff).
@@ -411,6 +494,12 @@ union Daten {
     i: int;
     f: float;
 }
+```
+```c
+typedef union {
+    int i;
+    float f;
+} Daten;
 ```
 
 #### SIMD-Vektoren
@@ -425,6 +514,16 @@ fn main() {
     let x = c[0];                        // Elementzugriff (float)
 }
 ```
+```c
+typedef float f32x4 __attribute__((vector_size(16)));
+
+int main(void) {
+    f32x4 a = {1.0f, 1.0f, 1.0f, 1.0f};
+    f32x4 b = {1.0f, 2.0f, 3.0f, 4.0f};
+    f32x4 c = a + b;
+    float x = c[0];
+}
+```
 
 Arithmetische (`+`, `-`, `*`, `/`) und bitweise (`&`, `|`, `^`) Operatoren arbeiten elementweise. Vordefinierte Typen findest du in [`std/simd.zc`](std/simd.zc).
 
@@ -434,6 +533,11 @@ Erstelle einen neuen Namen für einen bestehenden Typ.
 alias ID = int;
 alias PunktMap = Map<string, Punkt>;
 alias OpFunktion = fn(int, int) -> int;
+```
+```c
+typedef int ID;
+typedef struct Map_string_Punkt PunktMap;
+typedef int (*OpFunktion)(int, int);
 ```
 
 #### Opake Typ-Aliase
@@ -455,6 +559,26 @@ fn main() {
     let h: Handle = erstelle_handle(42);
     // let i: int = h; // Fehler: Typprüfung fehlgeschlagen
     // let h2: Handle = 10; // Fehler: Typprüfung fehlgeschlagen
+}
+```
+```c
+// In library.h
+typedef struct { int value; } Handle;
+
+Handle erstelle_handle(int v);
+
+// In library.c
+Handle erstelle_handle(int v) {
+    return (Handle){ v };
+}
+
+// In main.c
+#include "library.h"
+
+int main(void) {
+    Handle h = erstelle_handle(42);
+    // int i = h;       // Fehler: inkompatible Typen
+    // Handle h2 = 10;  // Fehler: inkompatible Typen
 }
 ```
 

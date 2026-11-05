@@ -40,6 +40,9 @@ def extract_code_blocks(filepath):
         lines = f.readlines()
 
     in_block = False
+    # Blocks in other languages (```c, ```bash...) are skipped whole, so that their closing
+    # fence is not taken for the opening of a Zen C block
+    is_zc = False
     block_start = 0
     code_lines = []
     skip_next = False
@@ -50,17 +53,18 @@ def extract_code_blocks(filepath):
         stripped = line.strip()
         if stripped.startswith('```') and not in_block:
             lang = stripped[3:].strip()
-            if lang in ('zc', 'zenc', ''):
-                in_block = True
-                block_start = i + 2  # 1-indexed, 1-based
-                code_lines = []
+            in_block = True
+            is_zc = lang in ('zc', 'zenc', '')
+            block_start = i + 2  # 1-indexed, 1-based
+            code_lines = []
         elif stripped.startswith('```') and in_block:
-            code = ''.join(code_lines)
-            if code.strip():
-                yield (block_start, code.strip(), skip_next)
+            if is_zc:
+                code = ''.join(code_lines)
+                if code.strip():
+                    yield (block_start, code.strip(), skip_next)
+                skip_next = False
             in_block = False
             code_lines = []
-            skip_next = False
         elif in_block:
             code_lines.append(line)
 

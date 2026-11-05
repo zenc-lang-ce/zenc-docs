@@ -303,6 +303,11 @@ def SIZE = 5;
 let ints: int[SIZE] = [1, 2, 3, 4, 5];
 let zeros: [int; SIZE]; // Inicialização-Zero
 ```
+```c
+#define SIZE 5
+int ints[SIZE] = {1, 2, 3, 4, 5};
+int zeros[SIZE] = {0};
+```
 
 #### Tuplas
 Agrupa múltiplos valores juntos, acessa elementos por índice.
@@ -310,6 +315,13 @@ Agrupa múltiplos valores juntos, acessa elementos por índice.
 let pair = (1, "Hello");
 let x = pair.0;  // 1
 let s = pair.1;  // "Hello"
+```
+```c
+typedef struct { int v0; const char *v1; } Tuple_int_string;
+
+Tuple_int_string pair = {1, "Hello"};
+int x = pair.v0;          // 1
+const char *s = pair.v1;  // "Hello"
 ```
 
 **Retorno Múltiplo de Valores**
@@ -324,6 +336,17 @@ let result = add_and_subtract(3, 2);
 let sum = result.0;   // 5
 let diff = result.1;  // 1
 ```
+```c
+typedef struct { int v0; int v1; } Tuple_int_int;
+
+Tuple_int_int add_and_subtract(int a, int b) {
+    return (Tuple_int_int){a + b, a - b};
+}
+
+Tuple_int_int result = add_and_subtract(3, 2);
+int sum  = result.v0;  // 5
+int diff = result.v1;  // 1
+```
 
 **Desestruturação**
 
@@ -332,11 +355,23 @@ Tuplas podem ser desestruturadas diretamente em variáveis:
 let (sum, diff) = add_and_subtract(3, 2);
 // sum = 5, diff = 1
 ```
+```c
+Tuple_int_int tmp = add_and_subtract(3, 2);
+int sum = tmp.v0;
+int diff = tmp.v1;
+// sum = 5, diff = 1
+```
 
 Desestruturação tipada permite anotações de tipo explícitas:
 ```zc
 let (a: string, b: u8) = ("hello", 42);
 let (x, y: i32) = (1, 2);  // Misto: x inferido, y explícito
+```
+```c
+const char *a = "hello";
+uint8_t b = 42;
+int x = 1;
+int32_t y = 2;
 ```
 
 #### Structs
@@ -356,6 +391,21 @@ struct Flags {
     valid: U8 : 1;
     mode:  U8 : 3;
 }
+```
+```c
+typedef struct {
+    int x;
+    int y;
+} Point;
+
+// Inicialização de Struct
+Point p = { .x = 10, .y = 20 };
+
+// Bitfields
+typedef struct {
+    uint8_t valid : 1;
+    uint8_t mode : 3;
+} Flags;
 ```
 
 > [!NOTE]
@@ -383,6 +433,28 @@ fn main() {
     // let id = u.id; // Erro: Acesso ao campo privado 'id' não permitido
 }
 ```
+```c
+// Em user.h
+typedef struct {
+    int id;
+    const char *name;
+} User;
+
+User new_user(const char *name);
+
+// Em user.c
+User new_user(const char *name) {
+    return (User){ .id = 1, .name = name };
+}
+
+// Em main.c
+#include "user.h"
+
+int main(void) {
+    User u = new_user("Alice");
+    int id = u.id; // Compila: C não tem campos privados
+}
+```
 
 #### Enums
 
@@ -394,6 +466,17 @@ enum Shape {
     Point               // Sem dados
 }
 ```
+```c
+typedef enum { Shape_Circle, Shape_Rect, Shape_Point } Shape_Tag;
+
+typedef struct {
+    Shape_Tag tag;
+    union {
+        struct { float radius; } Circle;
+        struct { float width, height; } Rect;
+    } data;
+} Shape;
+```
 
 #### Unions
 
@@ -403,6 +486,12 @@ union Data {
     i: int;
     f: float;
 }
+```
+```c
+typedef union {
+    int i;
+    float f;
+} Data;
 ```
 
 #### Vetores SIMD
@@ -417,6 +506,16 @@ fn main() {
     let x = c[0];                        // Acesso ao elemento (float)
 }
 ```
+```c
+typedef float f32x4 __attribute__((vector_size(16)));
+
+int main(void) {
+    f32x4 a = {1.0f, 1.0f, 1.0f, 1.0f};
+    f32x4 b = {1.0f, 2.0f, 3.0f, 4.0f};
+    f32x4 c = a + b;
+    float x = c[0];
+}
+```
 Operadores aritméticos (`+`, `-`, `*`, `/`) e bitwise (`&`, `|`, `^`) funcionam por elemento. Veja [`std/simd.zc`](../std/simd.zc) para os tipos predefinidos.
 
 #### Aliases de Tipos
@@ -425,6 +524,11 @@ Cria um novo nome para um tipo existente.
 alias ID = int;
 alias PointMap = Map<string, Point>
 alias OpFunc = fn(int, int) -> int
+```
+```c
+typedef int ID;
+typedef struct Map_string_Point PointMap;
+typedef int (*OpFunc)(int, int);
 ```
 > **Nota:** O ponto e vírgula final é opcional para aliases de tipo.
 
@@ -447,6 +551,26 @@ fn main() {
     let h: Handle = make_handle(42);
     // let i: int = h; // Erro: validação de tipo falhou
     // let h2: Handle = 10; // Erro: validação de tipo falhou
+}
+```
+```c
+// Em library.h
+typedef struct { int value; } Handle;
+
+Handle make_handle(int v);
+
+// Em library.c
+Handle make_handle(int v) {
+    return (Handle){ v };
+}
+
+// Em main.c
+#include "library.h"
+
+int main(void) {
+    Handle h = make_handle(42);
+    // int i = h;       // Erro: tipos incompatíveis
+    // Handle h2 = 10;  // Erro: tipos incompatíveis
 }
 ```
 

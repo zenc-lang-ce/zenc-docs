@@ -13,6 +13,11 @@ def SIZE = 5;
 let ints: int[SIZE] = [1, 2, 3, 4, 5];
 let zeros: [int; SIZE]; // Inicializado a cero
 ```
+```c
+#define SIZE 5
+int ints[SIZE] = {1, 2, 3, 4, 5};
+int zeros[SIZE] = {0};
+```
 
 #### Tuplas
 Agrupa múltiples valores, accede a los elementos por índice.
@@ -20,6 +25,13 @@ Agrupa múltiples valores, accede a los elementos por índice.
 let pair = (1, "Hola");
 let x = pair.0;  // 1
 let s = pair.1;  // "Hola"
+```
+```c
+typedef struct { int v0; const char *v1; } Tuple_int_string;
+
+Tuple_int_string pair = {1, "Hola"};
+int x = pair.v0;          // 1
+const char *s = pair.v1;  // "Hola"
 ```
 
 **Múltiples Valores de Retorno**
@@ -34,6 +46,17 @@ let resultado = sumar_y_restar(3, 2);
 let suma = resultado.0;   // 5
 let resta = resultado.1;  // 1
 ```
+```c
+typedef struct { int v0; int v1; } Tuple_int_int;
+
+Tuple_int_int sumar_y_restar(int a, int b) {
+    return (Tuple_int_int){a + b, a - b};
+}
+
+Tuple_int_int resultado = sumar_y_restar(3, 2);
+int suma  = resultado.v0;  // 5
+int resta = resultado.v1;  // 1
+```
 
 **Desestructuración**
 
@@ -42,11 +65,23 @@ Las tuplas pueden desestructurarse directamente en variables:
 let (suma, resta) = sumar_y_restar(3, 2);
 // suma = 5, resta = 1
 ```
+```c
+Tuple_int_int tmp = sumar_y_restar(3, 2);
+int suma = tmp.v0;
+int resta = tmp.v1;
+// suma = 5, resta = 1
+```
 
 La desestructuración tipada permite anotaciones de tipo explícitas:
 ```zc
 let (a: string, b: u8) = ("hello", 42);
 let (x, y: i32) = (1, 2);  // Mixto: x inferido, y explícito
+```
+```c
+const char *a = "hello";
+uint8_t b = 42;
+int x = 1;
+int32_t y = 2;
 ```
 
 #### Structs
@@ -65,6 +100,21 @@ struct Flags {
     valid: U8 : 1;
     mode:  U8 : 3;
 }
+```
+```c
+typedef struct {
+    int x;
+    int y;
+} Point;
+
+// Inicialización de struct
+Point p = { .x = 10, .y = 20 };
+
+// Campos de bits
+typedef struct {
+    uint8_t valid : 1;
+    uint8_t mode : 3;
+} Flags;
 ```
 
 {% alert(type="note") %}
@@ -93,6 +143,28 @@ fn main() {
     // let id = u.id; // Error: No se puede acceder al campo privado 'id'
 }
 ```
+```c
+// En user.h
+typedef struct {
+    int id;
+    const char *name;
+} User;
+
+User new_user(const char *name);
+
+// En user.c
+User new_user(const char *name) {
+    return (User){ .id = 1, .name = name };
+}
+
+// En main.c
+#include "user.h"
+
+int main(void) {
+    User u = new_user("Alice");
+    int id = u.id; // Compila: C no tiene campos privados
+}
+```
 
 #### Enums
 Uniones etiquetadas (Tipos suma) capaces de contener datos.
@@ -103,6 +175,17 @@ enum Shape {
     Point               // Sin datos
 }
 ```
+```c
+typedef enum { Shape_Circle, Shape_Rect, Shape_Point } Shape_Tag;
+
+typedef struct {
+    Shape_Tag tag;
+    union {
+        struct { float radius; } Circle;
+        struct { float width, height; } Rect;
+    } data;
+} Shape;
+```
 
 #### Uniones
 Uniones estándar de C (acceso inseguro).
@@ -111,6 +194,12 @@ union Data {
     i: int;
     f: float;
 }
+```
+```c
+typedef union {
+    int i;
+    float f;
+} Data;
 ```
 
 #### Vectores SIMD
@@ -125,6 +214,16 @@ fn main() {
     let x = c[0];                        // Acceso a elementos (float)
 }
 ```
+```c
+typedef float f32x4 __attribute__((vector_size(16)));
+
+int main(void) {
+    f32x4 a = {1.0f, 1.0f, 1.0f, 1.0f};
+    f32x4 b = {1.0f, 2.0f, 3.0f, 4.0f};
+    f32x4 c = a + b;
+    float x = c[0];
+}
+```
 Los operadores aritméticos (`+`, `-`, `*`, `/`) y bit a bit (`&`, `|`, `^`) funcionan por elementos. Consulta [`std/simd.zc`](../std/simd.zc) para los tipos predefinidos.
 
 #### Alias de Tipos
@@ -133,6 +232,11 @@ Crea un nuevo nombre para un tipo existente.
 alias ID = int;
 alias PointMap = Map<string, Point>
 alias OpFunc = fn(int, int) -> int
+```
+```c
+typedef int ID;
+typedef struct Map_string_Point PointMap;
+typedef int (*OpFunc)(int, int);
 ```
 > **Nota:** El punto y coma final es opcional para los alias de tipo.
 
@@ -154,5 +258,25 @@ fn main() {
     let h: Handle = make_handle(42);
     // let i: int = h; // Error: Falló la validación de tipos
     // let h2: Handle = 10; // Error: Falló la validación de tipos
+}
+```
+```c
+// En library.h
+typedef struct { int value; } Handle;
+
+Handle make_handle(int v);
+
+// En library.c
+Handle make_handle(int v) {
+    return (Handle){ v };
+}
+
+// En main.c
+#include "library.h"
+
+int main(void) {
+    Handle h = make_handle(42);
+    // int i = h;       // Error: tipos incompatibles
+    // Handle h2 = 10;  // Error: tipos incompatibles
 }
 ```

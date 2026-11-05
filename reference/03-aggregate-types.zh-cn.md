@@ -13,6 +13,11 @@ def SIZE = 5;
 let ints: int[SIZE] = [1, 2, 3, 4, 5];
 let zeros: [int; SIZE]; // 零初始化的
 ```
+```c
+#define SIZE 5
+int ints[SIZE] = {1, 2, 3, 4, 5};
+int zeros[SIZE] = {0};
+```
 
 #### 元组
 将多个值组合在一起，通过索引访问元素。
@@ -20,6 +25,13 @@ let zeros: [int; SIZE]; // 零初始化的
 let pair = (1, "Hello");
 let x = pair.0;  // 1
 let s = pair.1;  // "Hello"
+```
+```c
+typedef struct { int v0; const char *v1; } Tuple_int_string;
+
+Tuple_int_string pair = {1, "Hello"};
+int x = pair.v0;          // 1
+const char *s = pair.v1;  // "Hello"
 ```
 
 **多个返回值**
@@ -34,6 +46,17 @@ let result = add_and_subtract(3, 2);
 let sum = result.0;   // 5
 let diff = result.1;  // 1
 ```
+```c
+typedef struct { int v0; int v1; } Tuple_int_int;
+
+Tuple_int_int add_and_subtract(int a, int b) {
+    return (Tuple_int_int){a + b, a - b};
+}
+
+Tuple_int_int result = add_and_subtract(3, 2);
+int sum  = result.v0;  // 5
+int diff = result.v1;  // 1
+```
 
 **解构**
 
@@ -42,11 +65,23 @@ let diff = result.1;  // 1
 let (sum, diff) = add_and_subtract(3, 2);
 // sum = 5, diff = 1
 ```
+```c
+Tuple_int_int tmp = add_and_subtract(3, 2);
+int sum = tmp.v0;
+int diff = tmp.v1;
+// sum = 5, diff = 1
+```
 
 带类型的解构允许显式类型注解：
 ```zc
 let (a: string, b: u8) = ("hello", 42);
 let (x, y: i32) = (1, 2);  // 混合：x 推断，y 显式
+```
+```c
+const char *a = "hello";
+uint8_t b = 42;
+int x = 1;
+int32_t y = 2;
 ```
 
 #### 结构体
@@ -65,6 +100,21 @@ struct Flags {
     valid: U8 : 1;
     mode:  U8 : 3;
 }
+```
+```c
+typedef struct {
+    int x;
+    int y;
+} Point;
+
+// 结构体初始化
+Point p = { .x = 10, .y = 20 };
+
+// 位域
+typedef struct {
+    uint8_t valid : 1;
+    uint8_t mode : 3;
+} Flags;
 ```
 
 {% alert(type="note") %}
@@ -93,6 +143,28 @@ fn main() {
     // let id = u.id; // 错误：无法访问私有字段 'id'
 }
 ```
+```c
+// 在 user.h 中
+typedef struct {
+    int id;
+    const char *name;
+} User;
+
+User new_user(const char *name);
+
+// 在 user.c 中
+User new_user(const char *name) {
+    return (User){ .id = 1, .name = name };
+}
+
+// 在 main.c 中
+#include "user.h"
+
+int main(void) {
+    User u = new_user("Alice");
+    int id = u.id; // 可以编译：C 没有私有字段
+}
+```
 
 #### 枚举
 能够持有数据的标签联合 (Sum types)。
@@ -103,6 +175,17 @@ enum Shape {
     Point               // 不带数据
 }
 ```
+```c
+typedef enum { Shape_Circle, Shape_Rect, Shape_Point } Shape_Tag;
+
+typedef struct {
+    Shape_Tag tag;
+    union {
+        struct { float radius; } Circle;
+        struct { float width, height; } Rect;
+    } data;
+} Shape;
+```
 
 #### 联合体
 标准 C 联合体（不安全访问）。
@@ -111,6 +194,12 @@ union Data {
     i: int;
     f: float;
 }
+```
+```c
+typedef union {
+    int i;
+    float f;
+} Data;
 ```
 
 #### SIMD 向量
@@ -125,6 +214,16 @@ fn main() {
     let x = c[0];                        // 元素访问 (float)
 }
 ```
+```c
+typedef float f32x4 __attribute__((vector_size(16)));
+
+int main(void) {
+    f32x4 a = {1.0f, 1.0f, 1.0f, 1.0f};
+    f32x4 b = {1.0f, 2.0f, 3.0f, 4.0f};
+    f32x4 c = a + b;
+    float x = c[0];
+}
+```
 算术运算符（`+`, `-`, `*`, `/`）和位运算符（`&`, `|`, `^`）逐元素运算。预定义类型请参阅 [`std/simd.zc`](../std/simd.zc)。
 
 #### 类型别名
@@ -133,6 +232,11 @@ fn main() {
 alias ID = int;
 alias PointMap = Map<string, Point>
 alias OpFunc = fn(int, int) -> int
+```
+```c
+typedef int ID;
+typedef struct Map_string_Point PointMap;
+typedef int (*OpFunc)(int, int);
 ```
 > **注意：** 类型别名末尾的分号是可选的。
 
@@ -154,5 +258,25 @@ fn main() {
     let h: Handle = make_handle(42);
     // let i: int = h; // 错误：类型验证失败
     // let h2: Handle = 10; // 错误：类型验证失败
+}
+```
+```c
+// 在 library.h 中
+typedef struct { int value; } Handle;
+
+Handle make_handle(int v);
+
+// 在 library.c 中
+Handle make_handle(int v) {
+    return (Handle){ v };
+}
+
+// 在 main.c 中
+#include "library.h"
+
+int main(void) {
+    Handle h = make_handle(42);
+    // int i = h;       // 错误：类型不兼容
+    // Handle h2 = 10;  // 错误：类型不兼容
 }
 ```
