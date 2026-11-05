@@ -23,9 +23,6 @@ jobs:
           token: ${{ secrets.WEBSITE_REPO_TOKEN }}
           path: 'website'
 
-      - name: Install Python dependencies
-        run: pip install unidecode
-
       - name: Sync Files to Website Repo
         # The same script previews the site locally: `make serve`
         run: docs-repo/scripts/sync_to_site.sh website

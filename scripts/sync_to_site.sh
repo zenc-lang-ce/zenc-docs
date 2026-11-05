@@ -37,27 +37,19 @@ sync_section() {
 }
 
 sync_tour() {
-    # split_reference.py writes reference/ from raw/: run it on a copy, so this checkout stays
-    # as it is
-    local src
-    src=$(mktemp -d)
-    rsync -a "$docs/raw" "$docs/reference" "$docs/scripts" "$src/"
-    (cd "$src" && python3 scripts/split_reference.py --force > /dev/null)
     mkdir -p "$site/content/docs/tour/"
-    rsync -a --delete --exclude='_index.md' "$src/reference/" "$site/content/docs/tour/"
-    rm -rf "$src"
+    rsync -a --delete --exclude='_index.md' "$docs/reference/" "$site/content/docs/tour/"
     synced_dirs+=("$site/content/docs/tour")
 }
 
 sync_pages() {
     # English only, shown as plain documents, with their GitHub alerts (> [!WARNING]) turned
-    # into the site's alert shortcode, as in the Tour
+    # into the site's alert shortcode
     for name in introduction install changelog editors; do
         title=$(grep -m 1 "^# " "$docs/$name.md" | sed 's/^# //')
         {
             printf '+++\ntitle = "%s"\ntemplate = "plain.html"\n+++\n\n' "$title"
-            python3 -c 'import sys; sys.path.insert(0, sys.argv[2]); from split_reference import convert_alerts; sys.stdout.write(convert_alerts(open(sys.argv[1]).read()))' \
-                "$docs/$name.md" "$docs/scripts"
+            python3 "$docs/scripts/convert_alerts.py" "$docs/$name.md"
         } > "$site/content/docs/$name.md"
     done
 }

@@ -20,20 +20,13 @@ preview=$docs/.preview
 mkdir -p "$preview"
 rsync -a --delete --exclude .git "$web/" "$preview/site/"
 
-# split_reference.py names the anchors of non-Latin headings with unidecode, as the CI does
-if [ ! -x "$preview/venv/bin/python3" ]; then
-    python3 -m venv "$preview/venv"
-    "$preview/venv/bin/pip" install --quiet --disable-pip-version-check unidecode
-fi
-export PATH="$preview/venv/bin:$PATH"
-
 echo "Syncing the documentation..."
 "$docs/scripts/sync_to_site.sh" "$preview/site"
 
 # The parts of sync_to_site.sh that a changed file of this checkout belongs to
 parts_of() {
     case ${1#"$docs"/} in
-    raw/* | reference/* | scripts/split_reference.py) echo tour ;;
+    reference/*) echo tour ;;
     std/*) echo std ;;
     migrations/*) echo migrations ;;
     rosetta/*) echo rosetta ;;
