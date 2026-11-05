@@ -461,7 +461,8 @@ User new_user(const char *name) {
 
 int main(void) {
     User u = new_user("Alice");
-    int id = u.id; // 可以編譯：C 沒有私有字段
+    // -- Zen C 編譯錯誤！ --
+    // int id = u.id; // Zen C 會拒絕轉譯這段程式碼並報錯。
 }
 ```
 
@@ -475,15 +476,29 @@ enum Shape {
 }
 ```
 ```c
-typedef enum { Shape_Circle, Shape_Rect, Shape_Point } Shape_Tag;
+typedef enum { Shape_Circle_Tag, Shape_Rect_Tag, Shape_Point_Tag } Shape_Tag;
+
+typedef struct { float v0; float v1; } Tuple_float_float;
 
 typedef struct {
     Shape_Tag tag;
     union {
-        struct { float radius; } Circle;
-        struct { float width, height; } Rect;
+        float Circle;
+        Tuple_float_float Rect;
     } data;
 } Shape;
+
+Shape Shape_Circle(float v) {
+    return (Shape){ .tag = Shape_Circle_Tag, .data.Circle = v };
+}
+
+Shape Shape_Rect(float v0, float v1) {
+    return (Shape){ .tag = Shape_Rect_Tag, .data.Rect = { v0, v1 } };
+}
+
+Shape Shape_Point(void) {
+    return (Shape){ .tag = Shape_Point_Tag };
+}
 ```
 
 #### 聯合體
@@ -535,7 +550,8 @@ alias OpFunc = fn(int, int) -> int
 ```c
 typedef int ID;
 typedef struct Map_string_Point PointMap;
-typedef int (*OpFunc)(int, int);
+typedef struct { void *func; void *ctx; void (*drop)(void *); } z_closure_T;
+typedef z_closure_T OpFunc;
 ```
 > **注意：** 型別別名結尾的分號是可選項的。
 
@@ -561,13 +577,13 @@ fn main() {
 ```
 ```c
 // 在 library.h 中
-typedef struct { int value; } Handle;
+typedef int Handle;
 
 Handle make_handle(int v);
 
 // 在 library.c 中
 Handle make_handle(int v) {
-    return (Handle){ v };
+    return v;
 }
 
 // 在 main.c 中
@@ -575,8 +591,9 @@ Handle make_handle(int v) {
 
 int main(void) {
     Handle h = make_handle(42);
-    // int i = h;       // 錯誤：類型不兼容
-    // Handle h2 = 10;  // 錯誤：類型不兼容
+    // -- Zen C 編譯錯誤！ --
+    // int i = h;       // Zen C 會拒絕轉譯這段程式碼並報錯。
+    // Handle h2 = 10;  // Zen C 會拒絕轉譯這段程式碼並報錯。
 }
 ```
 

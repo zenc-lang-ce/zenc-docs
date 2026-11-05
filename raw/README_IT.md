@@ -462,7 +462,8 @@ Utente nuovo_utente(const char *nome) {
 
 int main(void) {
     Utente u = nuovo_utente("Alice");
-    int id = u.id; // Compila: il C non ha campi privati
+    // -- Errore di compilazione di Zen C! --
+    // int id = u.id; // Zen C si rifiuterebbe di transpilarlo e darebbe un errore.
 }
 ```
 
@@ -476,15 +477,29 @@ enum Forma {
 }
 ```
 ```c
-typedef enum { Forma_Cerchio, Forma_Rettangolo, Forma_Punto } Forma_Tag;
+typedef enum { Forma_Cerchio_Tag, Forma_Rettangolo_Tag, Forma_Punto_Tag } Forma_Tag;
+
+typedef struct { float v0; float v1; } Tuple_float_float;
 
 typedef struct {
     Forma_Tag tag;
     union {
-        struct { float raggio; } Cerchio;
-        struct { float larghezza, altezza; } Rettangolo;
+        float Cerchio;
+        Tuple_float_float Rettangolo;
     } data;
 } Forma;
+
+Forma Forma_Cerchio(float v) {
+    return (Forma){ .tag = Forma_Cerchio_Tag, .data.Cerchio = v };
+}
+
+Forma Forma_Rettangolo(float v0, float v1) {
+    return (Forma){ .tag = Forma_Rettangolo_Tag, .data.Rettangolo = { v0, v1 } };
+}
+
+Forma Forma_Punto(void) {
+    return (Forma){ .tag = Forma_Punto_Tag };
+}
 ```
 
 #### Unioni
@@ -536,7 +551,8 @@ alias OpFunc = fn(int, int) -> int
 ```c
 typedef int ID;
 typedef struct Mappa_string_Punto PuntoDellaMappa;
-typedef int (*OpFunc)(int, int);
+typedef struct { void *func; void *ctx; void (*drop)(void *); } z_closure_T;
+typedef z_closure_T OpFunc;
 ```
 > **Nota:** Il punto e virgola finale è opzionale per gli alias di tipo.
 
@@ -562,13 +578,13 @@ fn main() {
 ```
 ```c
 // In libreria.h
-typedef struct { int value; } Handle;
+typedef int Handle;
 
 Handle crea_handle(int v);
 
 // In libreria.c
 Handle crea_handle(int v) {
-    return (Handle){ v };
+    return v;
 }
 
 // In main.c
@@ -576,8 +592,9 @@ Handle crea_handle(int v) {
 
 int main(void) {
     Handle h = crea_handle(42);
-    // int i = h;       // Errore: tipi incompatibili
-    // Handle h2 = 10;  // Errore: tipi incompatibili
+    // -- Errore di compilazione di Zen C! --
+    // int i = h;       // Zen C si rifiuterebbe di transpilarlo e darebbe un errore.
+    // Handle h2 = 10;  // Zen C si rifiuterebbe di transpilarlo e darebbe un errore.
 }
 ```
 

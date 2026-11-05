@@ -163,7 +163,8 @@ User new_user(const char *name) {
 
 int main(void) {
     User u = new_user("Alice");
-    int id = u.id; // Compila: C não tem campos privados
+    // -- Erro de compilação do Zen C! --
+    // int id = u.id; // O Zen C se recusaria a transpilar isto e daria um erro.
 }
 ```
 
@@ -178,15 +179,29 @@ enum Shape {
 }
 ```
 ```c
-typedef enum { Shape_Circle, Shape_Rect, Shape_Point } Shape_Tag;
+typedef enum { Shape_Circle_Tag, Shape_Rect_Tag, Shape_Point_Tag } Shape_Tag;
+
+typedef struct { float v0; float v1; } Tuple_float_float;
 
 typedef struct {
     Shape_Tag tag;
     union {
-        struct { float radius; } Circle;
-        struct { float width, height; } Rect;
+        float Circle;
+        Tuple_float_float Rect;
     } data;
 } Shape;
+
+Shape Shape_Circle(float v) {
+    return (Shape){ .tag = Shape_Circle_Tag, .data.Circle = v };
+}
+
+Shape Shape_Rect(float v0, float v1) {
+    return (Shape){ .tag = Shape_Rect_Tag, .data.Rect = { v0, v1 } };
+}
+
+Shape Shape_Point(void) {
+    return (Shape){ .tag = Shape_Point_Tag };
+}
 ```
 
 #### Unions
@@ -239,7 +254,8 @@ alias OpFunc = fn(int, int) -> int
 ```c
 typedef int ID;
 typedef struct Map_string_Point PointMap;
-typedef int (*OpFunc)(int, int);
+typedef struct { void *func; void *ctx; void (*drop)(void *); } z_closure_T;
+typedef z_closure_T OpFunc;
 ```
 > **Nota:** O ponto e vírgula final é opcional para aliases de tipo.
 
@@ -266,13 +282,13 @@ fn main() {
 ```
 ```c
 // Em library.h
-typedef struct { int value; } Handle;
+typedef int Handle;
 
 Handle make_handle(int v);
 
 // Em library.c
 Handle make_handle(int v) {
-    return (Handle){ v };
+    return v;
 }
 
 // Em main.c
@@ -280,7 +296,8 @@ Handle make_handle(int v) {
 
 int main(void) {
     Handle h = make_handle(42);
-    // int i = h;       // Erro: tipos incompatíveis
-    // Handle h2 = 10;  // Erro: tipos incompatíveis
+    // -- Erro de compilação do Zen C! --
+    // int i = h;       // O Zen C se recusaria a transpilar isto e daria um erro.
+    // Handle h2 = 10;  // O Zen C se recusaria a transpilar isto e daria um erro.
 }
 ```

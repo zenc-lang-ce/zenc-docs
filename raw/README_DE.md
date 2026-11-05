@@ -462,7 +462,8 @@ Benutzer neuer_benutzer(const char *name) {
 
 int main(void) {
     Benutzer u = neuer_benutzer("Alice");
-    int id = u.id; // Kompiliert: C kennt keine privaten Felder
+    // -- Zen C Kompilierfehler! --
+    // int id = u.id; // Zen C würde das nicht transpilieren und einen Fehler melden.
 }
 ```
 
@@ -476,15 +477,29 @@ enum Form {
 }
 ```
 ```c
-typedef enum { Form_Kreis, Form_Rechteck, Form_Punkt } Form_Tag;
+typedef enum { Form_Kreis_Tag, Form_Rechteck_Tag, Form_Punkt_Tag } Form_Tag;
+
+typedef struct { float v0; float v1; } Tuple_float_float;
 
 typedef struct {
     Form_Tag tag;
     union {
-        struct { float radius; } Kreis;
-        struct { float breite, hoehe; } Rechteck;
+        float Kreis;
+        Tuple_float_float Rechteck;
     } data;
 } Form;
+
+Form Form_Kreis(float v) {
+    return (Form){ .tag = Form_Kreis_Tag, .data.Kreis = v };
+}
+
+Form Form_Rechteck(float v0, float v1) {
+    return (Form){ .tag = Form_Rechteck_Tag, .data.Rechteck = { v0, v1 } };
+}
+
+Form Form_Punkt(void) {
+    return (Form){ .tag = Form_Punkt_Tag };
+}
 ```
 
 #### Unions
@@ -537,7 +552,8 @@ alias OpFunktion = fn(int, int) -> int;
 ```c
 typedef int ID;
 typedef struct Map_string_Punkt PunktMap;
-typedef int (*OpFunktion)(int, int);
+typedef struct { void *func; void *ctx; void (*drop)(void *); } z_closure_T;
+typedef z_closure_T OpFunktion;
 ```
 
 #### Opake Typ-Aliase
@@ -563,13 +579,13 @@ fn main() {
 ```
 ```c
 // In library.h
-typedef struct { int value; } Handle;
+typedef int Handle;
 
 Handle erstelle_handle(int v);
 
 // In library.c
 Handle erstelle_handle(int v) {
-    return (Handle){ v };
+    return v;
 }
 
 // In main.c
@@ -577,8 +593,9 @@ Handle erstelle_handle(int v) {
 
 int main(void) {
     Handle h = erstelle_handle(42);
-    // int i = h;       // Fehler: inkompatible Typen
-    // Handle h2 = 10;  // Fehler: inkompatible Typen
+    // -- Zen C Kompilierfehler! --
+    // int i = h;       // Zen C würde das nicht transpilieren und einen Fehler melden.
+    // Handle h2 = 10;  // Zen C würde das nicht transpilieren und einen Fehler melden.
 }
 ```
 
