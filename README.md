@@ -89,7 +89,7 @@ Which branch your pull request goes to:
 
 The website ([docs.zenc-lang.org](https://docs.zenc-lang.org)) publishes the latest release branch, `release/0.5`: pushes to `main` do not reach it.
 
-When the compiler releases a new minor version X.Y, create `release/X.Y` from the commit of `main` that documents it, and `main` moves on to the next version. Then point the `branches` of `.github/workflows/sync-docs.yml` and `sync-www.yml` at `release/X.Y`, in both `main` and the new branch.
+When the compiler releases a new minor version X.Y, create `release/X.Y` from the commit of `main` that documents it, and `main` moves on to the next version. Then point the `branches` of `.github/workflows/sync-docs.yml` at `release/X.Y`, in both `main` and the new branch.
 
 ### Preview the website locally
 
