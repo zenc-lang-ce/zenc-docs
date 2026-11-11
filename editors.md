@@ -115,7 +115,7 @@ The same works without VS Code: `lldb ./app` or `gdb ./app`, then `breakpoint se
 
 ## Other editors
 
-Any editor with an LSP client can start `zc-lsp`: it talks LSP over standard input and output, and needs no arguments. Register the `.zc` extension as a language, then point the client to `zc-lsp`.
+Any editor with an LSP client can start `zc-lsp`: it talks LSP over standard input and output, and needs no arguments. Register the `.zc` extension as a language, then point the client to `zc-lsp`. [zc-lsp](https://zenc-lang-ce.github.io/docs/tools/zc-lsp/) explains what it does and how to configure it for a project.
 
 ### Neovim
 

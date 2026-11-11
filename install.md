@@ -1,10 +1,10 @@
 # Install
 
-Zen C comes as the compiler, `zc`, and its standalone tools:
-- `zc-lsp`
-- `zc-repl`
-- `zc-doc`
-- `zc-format`
+Zen C comes as the compiler, `zc`, and its standalone tools (see [Tools](https://zenc-lang-ce.github.io/docs/tools/)):
+- `zc-lsp`, the language server
+- `zc-repl`, which runs Zen C a line at a time
+- `zc-doc`, which writes the documentation of a file
+- `zc-format`, which indents a file
 
 `zc lsp`, `zc repl`, `zc doc` and `zc format` launch them, so keep them next to `zc`.
 

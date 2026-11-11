@@ -23,25 +23,22 @@ The core of Zen C's power lies in its standard library. Detailed documentation f
 Deep dives into the compiler's internals and tooling protocols.
 
 - **[Lexer Specification](lex.md)**: Detailed breakdown of Zen C's tokens and grammar rules.
-- **[LSP Protocol](LSP.md)**: Documentation for the Zen C Language Server integration.
 - **[Plugin System](PLUGINS.md)**: How to extend the compiler with custom plugins.
 - **[Install](install.md)**: Building and installing Zen C on Linux, macOS and Windows.
 - **[Changelog](changelog.md)**: Every change in each release.
 - **[Migrations](migrations/)**: What to change in your code for each release ([0.4.4 to 0.5](migrations/0-4-4-to-0-5.md)).
 
-### Command-Line Tools
+### Tools
 
-Zen C ships a small set of focused binaries, installed alongside `zc`:
+Zen C comes as the compiler and four tools, installed next to it. **[Tools](tools/)** has a page for each one:
 
-| Binary | Purpose |
+| Tool | What it does |
 | :--- | :--- |
-| `zc` | The compiler (`build`, `transpile`, `run`, `check`, ...). |
-| `zc-lsp` | Language server (JSON-RPC over stdio). |
-| `zc-repl` | Interactive read-eval-print loop (JIT-powered). |
-| `zc-doc` | Generates module documentation from source. |
-| `zc-format` | Source formatter. |
-
-The legacy subcommands `zc lsp`, `zc repl`, `zc doc`, and `zc format` still work as deprecated aliases that launch the standalone binaries.
+| [`zc`](tools/zc.md) | Compiles a program: builds it, runs it, checks it or translates it to C. |
+| [`zc-format`](tools/zc-format.md) | Indents a source file. |
+| [`zc-doc`](tools/zc-doc.md) | Writes the documentation of a file and its imports as Markdown. |
+| [`zc-repl`](tools/zc-repl.md) | Runs Zen C a line at a time. |
+| [`zc-lsp`](tools/zc-lsp.md) | The language server, for [editors](editors.md). |
 
 ## Reference (17 chapters)
 

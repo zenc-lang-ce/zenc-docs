@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Copies this repository's documentation into a checkout of the website repository
 # (zenc-lang-ce/zenc-lang-ce.github.io), as the site expects it: the language reference split
-# into the Tour pages, the standard library, the Getting Started pages, the migration guides and
-# the Rosetta examples, with Zola front matter and the GitHub alerts turned into the site's
+# into the Tour pages, the standard library, the Getting Started pages, the tool pages, the
+# migration guides and the Rosetta examples, with Zola front matter and the GitHub alerts turned into the site's
 # alert shortcode.
 #
 # Usage: scripts/sync_to_site.sh WEBSITE_DIR [PART...]
-#   PART: shortcodes, std, tour, pages (Getting Started), migrations, rosetta. Without parts it
+#   PART: shortcodes, std, tour, pages (Getting Started), tools, migrations, rosetta. Without parts it
 #   syncs them all, as .github/workflows/sync-docs.yml does before committing to the website
 #   repository; `make serve` syncs only the parts whose files changed.
 set -euo pipefail
@@ -14,7 +14,7 @@ set -euo pipefail
 docs=$(cd "$(dirname "$0")/.." && pwd)
 site=$(cd "$1" && pwd)/docs.zenc-lang.org
 shift
-parts=${*:-shortcodes std tour pages migrations rosetta}
+parts=${*:-shortcodes std tour pages tools migrations rosetta}
 # The directories of the site whose pages get the section guard and the front matter below
 synced_dirs=()
 
@@ -54,6 +54,28 @@ sync_pages() {
     done
 }
 
+sync_tools() {
+    # English only: tools/README.md is the section's page, and the tools follow in this order,
+    # shown as plain documents
+    local dir=$site/content/docs/tools weight=0 name title
+    rm -rf "$dir"
+    mkdir -p "$dir"
+    {
+        printf '+++\ntitle = "Tools"\nsort_by = "weight"\npage_template = "plain.html"\n\n'
+        printf '[extra]\nno_alphabet_grouping = true\n+++\n\n'
+        python3 "$docs/scripts/convert_alerts.py" "$docs/tools/README.md"
+    } > "$dir/_index.md"
+    for name in zc zc-format zc-doc zc-repl zc-lsp; do
+        weight=$((weight + 1))
+        title=$(grep -m 1 "^# " "$docs/tools/$name.md" | sed 's/^# //')
+        {
+            printf '+++\ntitle = "%s"\nweight = %d\n+++\n\n' "$title" "$weight"
+            python3 "$docs/scripts/convert_alerts.py" "$docs/tools/$name.md"
+        } > "$dir/$name.md"
+    done
+    synced_dirs+=("$dir")
+}
+
 sync_migrations() {
     # English only: one page per release, shown as plain documents
     mkdir -p "$site/content/docs/migrations/"
@@ -69,6 +91,7 @@ for part in $parts; do
     std) sync_section std std ;;
     tour) sync_tour ;;
     pages) sync_pages ;;
+    tools) sync_tools ;;
     migrations) sync_migrations ;;
     rosetta) sync_section rosetta examples/rosetta ;;
     *)

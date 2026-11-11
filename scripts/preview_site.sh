@@ -28,10 +28,11 @@ parts_of() {
     case ${1#"$docs"/} in
     reference/*) echo tour ;;
     std/*) echo std ;;
+    tools/*) echo tools ;;
     migrations/*) echo migrations ;;
     rosetta/*) echo rosetta ;;
     site/templates/shortcodes/*) echo shortcodes ;;
-    scripts/sync_to_site.sh) echo shortcodes std tour pages migrations rosetta ;;
+    scripts/sync_to_site.sh) echo shortcodes std tour pages tools migrations rosetta ;;
     *.md) echo pages ;;
     esac
 }
