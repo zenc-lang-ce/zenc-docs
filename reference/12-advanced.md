@@ -129,7 +129,7 @@ fn main() {
 }
 ```
 
-Read the full **[Plugin System Guide](../PLUGINS.md)** for more details.
+[Plugins](https://zenc-lang-ce.github.io/docs/plugins/) explains how to use them and how to write one.
 
 #### Generic C Macros
 Pass preprocessor macros through to C.

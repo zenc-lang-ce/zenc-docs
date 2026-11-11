@@ -84,7 +84,7 @@ fn main() {
 }
 ```
 
-Leia o **[Guia do Sistema de Plugins](../PLUGINS.md)** completo para mais detalhes.
+Leia o **[Guia do Sistema de Plugins](https://zenc-lang-ce.github.io/docs/plugins/)** completo para mais detalhes.
 
 #### Macros Genéricos de C
 Passe macros pré-processamento para o C.

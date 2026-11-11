@@ -23,7 +23,7 @@ The core of Zen C's power lies in its standard library. Detailed documentation f
 Deep dives into the compiler's internals and tooling protocols.
 
 - **[Lexer Specification](lex.md)**: Detailed breakdown of Zen C's tokens and grammar rules.
-- **[Plugin System](PLUGINS.md)**: How to extend the compiler with custom plugins.
+- **[Plugins](plugins.md)**: Blocks of other languages in Zen C, and how to write a plugin.
 - **[Install](install.md)**: Building and installing Zen C on Linux, macOS and Windows.
 - **[Changelog](changelog.md)**: Every change in each release.
 - **[Migrations](migrations/)**: What to change in your code for each release ([0.4.4 to 0.5](migrations/0-4-4-to-0-5.md)).

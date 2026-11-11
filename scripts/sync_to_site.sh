@@ -45,7 +45,7 @@ sync_tour() {
 sync_pages() {
     # English only, shown as plain documents, with their GitHub alerts (> [!WARNING]) turned
     # into the site's alert shortcode
-    for name in introduction install changelog editors; do
+    for name in introduction install editors plugins changelog; do
         title=$(grep -m 1 "^# " "$docs/$name.md" | sed 's/^# //')
         {
             printf '+++\ntitle = "%s"\ntemplate = "plain.html"\n+++\n\n' "$title"

@@ -86,7 +86,7 @@ fn main() {
 }
 ```
 
-閱讀完整的 **[插件系統指南](../PLUGINS.md)** 以了解更多詳情。
+閱讀完整的 **[插件系統指南](https://zenc-lang-ce.github.io/docs/plugins/)** 以了解更多詳情。
 
 #### 泛型 C 宏
 將預處理器宏傳遞給 C。
