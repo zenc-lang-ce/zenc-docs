@@ -82,7 +82,12 @@ sum_into(2, 2); // val is now 20
 let original = 100;
 let implicit = x => original + x;       // Implicit capture by value (no brackets)
 let explicit = [=] x => original + x;   // Explicit capture by value
-// let fail = x => original += x;       // Error: cannot assign to captured value
+
+// A value capture is the closure's own copy: the body may change it, the closure
+// keeps it between calls, and the original does not change.
+let count = 0;
+let next = fn() -> int { count += 1; return count; };
+next(); next();                         // next() returns 1, then 2; count is still 0
 
 ```
 
