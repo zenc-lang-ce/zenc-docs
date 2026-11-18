@@ -3,6 +3,10 @@
 # syncs it again whenever a file changes. The website checkout is copied to .preview/, so it
 # stays as it is.
 #
+# sync_to_site.sh rewrites every page of a part it syncs, changed or not, and Zola rebuilds the
+# whole site for each file it sees change. So the script syncs into a copy of its own
+# (.preview/staging), and only the files that end up different reach the site Zola serves.
+#
 # Usage: scripts/preview_site.sh WEBSITE_DIR [PORT]    (or `make serve`)
 # Needs python3 and rsync, and Zola 0.18.0 (the version the site deploys with) or Docker.
 set -euo pipefail
@@ -17,11 +21,23 @@ port=${2:-1111}
 zola_version=0.18.0
 preview=$docs/.preview
 
+staging=$preview/staging
+site=$preview/site
+
+# Copies to the served site the files of the staging copy whose content differs from it. Not
+# their times (-t): sync_to_site.sh gives every page it syncs a new one, and Zola would rebuild
+# for a file whose time alone changed. In place: a temporary file renamed over each page gives
+# Zola several changes, and a rebuild for each.
+publish() {
+    rsync -rl --checksum --inplace --delete --exclude /docs.zenc-lang.org/public "$staging/" "$site/"
+}
+
 mkdir -p "$preview"
-rsync -a --delete --exclude .git "$web/" "$preview/site/"
+rsync -a --delete --exclude .git "$web/" "$staging/"
 
 echo "Syncing the documentation..."
-"$docs/scripts/sync_to_site.sh" "$preview/site"
+"$docs/scripts/sync_to_site.sh" "$staging"
+publish
 
 # The parts of sync_to_site.sh that a changed file of this checkout belongs to
 parts_of() {
@@ -49,7 +65,8 @@ touch "$stamp"
         parts=$(while read -r file; do parts_of "$file"; done <<< "$changed" | tr ' ' '\n' | sort -u | tr '\n' ' ')
         if [ -n "${parts// /}" ]; then
             # shellcheck disable=SC2086 # one argument per part
-            "$docs/scripts/sync_to_site.sh" "$preview/site" $parts && echo "Synced $parts$(date +%H:%M:%S)"
+            "$docs/scripts/sync_to_site.sh" "$staging" $parts && publish &&
+                echo "Synced $parts$(date +%H:%M:%S)"
         fi
     done
 ) &
@@ -66,7 +83,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
-cd "$preview/site/docs.zenc-lang.org"
+cd "$site/docs.zenc-lang.org"
 echo "Serving at http://localhost:$port/docs/"
 if command -v zola > /dev/null && zola --version | grep -q " $zola_version"; then
     zola serve --port "$port" &
